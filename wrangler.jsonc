@@ -1,0 +1,46 @@
+/**
+ * nvd-dentalink-mcp · NVD-TK-17
+ * Conector MCP de Dentalink, solo lectura, con inicio de sesion via Cloudflare Access.
+ * Sin Durable Objects: createMcpHandler es stateless.
+ */
+{
+	"$schema": "node_modules/wrangler/config-schema.json",
+	"name": "nvd-dentalink-mcp",
+	"main": "src/index.ts",
+	"compatibility_date": "2026-09-23",
+	"compatibility_flags": ["nodejs_compat"],
+	// Solo workers.dev. Nada de rutas en la zona novodent.mx (regla 2 de NVD-TK-17).
+	"workers_dev": true,
+	"kv_namespaces": [
+		{
+			"binding": "OAUTH_KV",
+			// FASE 3: pegar aqui el id que devuelve `npx wrangler kv namespace create OAUTH_KV`.
+			"id": "PENDIENTE-FASE-3"
+		}
+	],
+	"vars": {
+		// Segunda barrera despues de la politica de Access: se revisa en el inicio de
+		// sesion Y en cada llamada, asi que quitar un correo aqui corta el acceso al
+		// siguiente deploy aunque la persona tenga un token vigente.
+		"ALLOWED_EMAILS": "andres@novodent.mx,maitte@novodent.mx,jared@novodent.mx,paco@novodent.mx,melanie.molina@novodent.mx",
+		// VERIFICAR contra nvd-mcp.js antes de la fase 4.
+		"DENTALINK_BASE_URL": "https://api.dentalink.healthatom.com/api/v1"
+	},
+	"secrets": {
+		"required": [
+			"DENTALINK_TOKEN",
+			"ACCESS_CLIENT_ID",
+			"ACCESS_CLIENT_SECRET",
+			"ACCESS_TOKEN_URL",
+			"ACCESS_AUTHORIZATION_URL",
+			"ACCESS_JWKS_URL",
+			"COOKIE_ENCRYPTION_KEY"
+		]
+	},
+	"observability": {
+		"enabled": true
+	},
+	"dev": {
+		"port": 8788
+	}
+}

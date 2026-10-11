@@ -1,0 +1,9 @@
+# Solo para `wrangler dev`. Copiar a .dev.vars (ignorado por git) y llenar en local.
+# Nunca subir valores reales.
+DENTALINK_TOKEN=
+ACCESS_CLIENT_ID=
+ACCESS_CLIENT_SECRET=
+ACCESS_TOKEN_URL=
+ACCESS_AUTHORIZATION_URL=
+ACCESS_JWKS_URL=
+COOKIE_ENCRYPTION_KEY=
