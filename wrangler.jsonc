@@ -14,8 +14,8 @@
 	"kv_namespaces": [
 		{
 			"binding": "OAUTH_KV",
-			// FASE 3: pegar aqui el id que devuelve `npx wrangler kv namespace create OAUTH_KV`.
-			"id": "PENDIENTE-FASE-3"
+			// KV «nvd-dentalink-mcp-OAUTH_KV», creado el 12-oct-2026 (fase 3). No es secreto.
+			"id": "888656b321ce4674bfbf5308e2e9e5d9"
 		}
 	],
 	"vars": {

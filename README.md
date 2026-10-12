@@ -69,7 +69,7 @@ application › SaaS application › nombre «Novodent · Conector Dentalink» �
 **Fase 3 · KV y secretos** (Paco pega cada valor; nunca en archivos):
 
 ```bash
-npx wrangler kv namespace create OAUTH_KV      # pegar el id en wrangler.jsonc
+# El KV OAUTH_KV ya existe (id en wrangler.jsonc), creado el 12-oct-2026.
 npx wrangler secret put DENTALINK_TOKEN        # llave nvdasistentes
 npx wrangler secret put ACCESS_CLIENT_ID
 npx wrangler secret put ACCESS_CLIENT_SECRET
