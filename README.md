@@ -29,7 +29,7 @@ Tokens: acceso 1 h, renovación 7 días. Después, entrar de nuevo con Access.
 ## Estado
 
 - [x] Fase 1: proyecto, inicio de sesión y las 9 herramientas de `nvd-mcp.js`
-- [x] Fases 2 y 3: app de Access y 7 secretos, desde el panel (11-oct-2026). Pendiente: fases 4 a 7
+- [x] Fases 2 y 3: app de Access y 7 secretos, desde el panel (11-oct-2026). Pendiente: fases 4 a 7 · Despliegue por Workers Builds
 
 ## Herramientas
 
