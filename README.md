@@ -13,8 +13,9 @@ Ningún sistema existente depende de este Worker.
 | `src/access-handler.ts` | `/authorize` (consentimiento) y `/callback` (canje con Access, PKCE) con los helpers de la v1 |
 | `src/access-jwt.ts` | Verifica el `id_token` de Access: firma RS256, emisor, audiencia, vigencia |
 | `src/allowlist.ts` | `ALLOWED_EMAILS`, segunda barrera tras la política de Access. Se revisa al entrar **y en cada llamada** |
-| `src/dentalink.ts` | Cliente **solo GET**, lista blanca de campos (`pick`) y celular enmascarado (`maskPhone`) |
-| `src/server.ts` | Las herramientas. Log: solo `{herramienta, correo}` |
+| `src/dentalink.ts` | Cliente **solo GET**: 1 consulta cada 1.1 s, reintento en 429, paginación solo dentro de la base |
+| `src/tools.ts` | Las 9 herramientas, portadas de `nvd-mcp.js`. Cada respuesta se arma campo por campo (lista blanca) |
+| `src/server.ts` | Registro MCP con validación de entradas (zod). Log: solo `{herramienta, correo}` |
 
 Rutas: `/mcp`, `/authorize`, `/callback`, `/token`, `/register` y `/.well-known/*`.
 
@@ -25,9 +26,29 @@ Tokens: acceso 1 h, renovación 7 días. Después, entrar de nuevo con Access.
 
 ## Estado
 
-- [x] Fase 1 (parcial, B1): proyecto, inicio de sesión y herramienta `dentistas`
-- [ ] Portar las otras 8 herramientas de `nvd-mcp.js` con su lista blanca
-- [ ] **Verificar contra `nvd-mcp.js`**: `DENTALINK_BASE_URL`, el encabezado de autorización (`Token …`) y `CAMPOS_DENTISTA`
+- [x] Fase 1: proyecto, inicio de sesión y las 9 herramientas de `nvd-mcp.js`
+- [ ] Fases 2 a 7
+
+## Herramientas
+
+| Herramienta | Qué devuelve |
+|---|---|
+| `agenda_dia` | Citas de un día (sin canceladas ni reprogramadas). Hasta 60 |
+| `confirmaciones_pendientes` | Citas sin confirmar de los próximos 1 a 7 días (2 por defecto) |
+| `citas_proximas` | Citas de los próximos 1 a 7 días (3 por defecto), opcionalmente de un profesional. Hasta 80 |
+| `buscar_paciente` | Hasta 5 pacientes por nombre, apellido o celular: alias, nombre, File y últimos 4 del celular |
+| `citas_paciente` | Próximas 5 y últimas 5 citas de un File |
+| `huecos` | Horarios libres de la agenda en línea (mañana y 30 min por defecto). Hasta 40 |
+| `dentistas` | Catálogo de profesionales: id, nombre, especialidad, habilitado |
+| `laboratorio_paciente` | Prestaciones de hasta 4 planes activos con estado y solicitud a laboratorio |
+| `laboratorios` | Catálogo de laboratorios |
+
+Cada cita sale solo con: fecha, hora, duración, profesional, consultorio, estado,
+paciente (alias o nombre), File e id de la cita. Solo sucursal 1.
+
+Nunca salen evoluciones, diagnósticos, comentarios clínicos, montos ni el
+celular completo. Las pruebas (`test/tools.test.ts`) lo comprueban con datos
+falsos que sí traen esos campos.
 
 ## Comprobar
 

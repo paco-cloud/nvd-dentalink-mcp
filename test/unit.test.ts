@@ -2,7 +2,11 @@ import { test } from "node:test";
 import assert from "node:assert/strict";
 import { generateKeyPairSync, createSign } from "node:crypto";
 import { isAllowed } from "../src/allowlist.ts";
-import { buildUrl, dentalinkGet, maskPhone, pick } from "../src/dentalink.ts";
+import { buildUrl, dentalinkGet, ritmo, ultimos4 } from "../src/dentalink.ts";
+import * as T from "../src/tools.ts";
+
+ritmo.intervaloMs = 0;
+ritmo.espera429Ms = 0;
 import { verifyIdToken } from "../src/access-jwt.ts";
 
 const env = {
@@ -23,21 +27,17 @@ test("lista blanca de correos", () => {
 	assert.equal(isAllowed("", "andres@novodent.mx"), false);
 });
 
-test("pick solo deja los campos de la lista blanca", () => {
-	assert.deepEqual(pick({ id: 1, nombre: "A", diagnostico: "x", monto: 9 }, ["id", "nombre"]), { id: 1, nombre: "A" });
-});
-
-test("celular enmascarado", () => {
-	assert.equal(maskPhone("+52 722 123 4567"), "******4567");
-	assert.equal(maskPhone("12"), "****");
-	assert.equal(maskPhone(null), null);
-	assert.equal(maskPhone(""), null);
+test("celular: solo los ultimos 4", () => {
+	assert.equal(ultimos4("+52 722 123 4567"), "4567");
+	assert.equal(ultimos4(null), null);
+	assert.equal(ultimos4(""), null);
 });
 
 test("buildUrl no sale de la base de Dentalink", () => {
 	assert.equal(buildUrl(env, "dentistas", { q: "x", vacio: "" }).href, "https://dl.example/api/v1/dentistas?q=x");
 	assert.throws(() => buildUrl(env, "https://evil.example/x"));
 	assert.throws(() => buildUrl(env, "../../otra"));
+	assert.equal(buildUrl(env, "citas", { q: '{"a":"x..y"}' }).searchParams.get("q"), '{"a":"x..y"}');
 	assert.ok(buildUrl(env, "//evil.example/x").href.startsWith("https://dl.example/api/v1/"));
 });
 

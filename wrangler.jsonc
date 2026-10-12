@@ -23,7 +23,7 @@
 		// sesion Y en cada llamada, asi que quitar un correo aqui corta el acceso al
 		// siguiente deploy aunque la persona tenga un token vigente.
 		"ALLOWED_EMAILS": "andres@novodent.mx,maitte@novodent.mx,jared@novodent.mx,paco@novodent.mx,melanie.molina@novodent.mx",
-		// VERIFICAR contra nvd-mcp.js antes de la fase 4.
+		// Confirmada contra nvd-mcp.js (12-oct-2026).
 		"DENTALINK_BASE_URL": "https://api.dentalink.healthatom.com/api/v1"
 	},
 	"secrets": {
