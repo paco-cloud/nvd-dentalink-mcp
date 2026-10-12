@@ -9,7 +9,8 @@
 	"main": "src/index.ts",
 	"compatibility_date": "2026-09-23",
 	"compatibility_flags": ["nodejs_compat"],
-	// Solo workers.dev. Nada de rutas en la zona novodent.mx (regla 2 de NVD-TK-17).
+	// Solo workers.dev: https://nvd-dentalink-mcp.novomedia.workers.dev
+	// Nada de rutas en la zona novodent.mx (regla 2 de NVD-TK-17).
 	"workers_dev": true,
 	"kv_namespaces": [
 		{

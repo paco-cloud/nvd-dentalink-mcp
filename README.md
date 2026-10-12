@@ -1,5 +1,7 @@
 # nvd-dentalink-mcp
 
+**URL del conector:** `https://nvd-dentalink-mcp.novomedia.workers.dev/mcp`
+
 Conector MCP de Dentalink para Claude, **solo lectura**, con inicio de sesión por
 Cloudflare Access. Ticket: NVD-TK-17 (decisiones en NVD-TK-17a: A1, B1).
 
@@ -62,7 +64,7 @@ npm run check   # tsc + pruebas + wrangler deploy --dry-run (no despliega)
 **Fase 2 · Access.** Zero Trust › Access controls › Applications › Create new
 application › SaaS application › nombre «Novodent · Conector Dentalink» › OIDC.
 
-- Redirect URL: `https://nvd-dentalink-mcp.<subdominio>.workers.dev/callback`.
+- Redirect URL: `https://nvd-dentalink-mcp.novomedia.workers.dev/callback`.
 - Política: allow, solo andres@, maitte@, jared@, paco@ y melanie.molina@novodent.mx.
 - Métodos de entrada: Google y código de un solo uso.
 
@@ -85,7 +87,7 @@ openssl rand -hex 32 | npx wrangler secret put COOKIE_ENCRYPTION_KEY
 
 ```bash
 npx wrangler deploy
-npx @modelcontextprotocol/inspector@latest     # URL: https://…workers.dev/mcp
+npx @modelcontextprotocol/inspector@latest     # URL: https://nvd-dentalink-mcp.novomedia.workers.dev/mcp
 ```
 
 - Una cuenta autorizada ve las herramientas.
