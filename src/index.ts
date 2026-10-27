@@ -1,6 +1,8 @@
 import OAuthProvider, { type OAuthProviderOptions } from "@cloudflare/workers-oauth-provider";
 import { createMcpHandler } from "agents/mcp/server";
 import { handleAccessRequest } from "./access-handler.ts";
+import { exportar } from "./bitacora.ts";
+import { appendFilas } from "./perfiles.ts";
 import { isAllowed } from "./allowlist.ts";
 import { createServer } from "./server.ts";
 
@@ -60,5 +62,13 @@ export default {
 			providers.set(origin, provider);
 		}
 		return provider.fetch(request, env, ctx);
+	},
+	// NVD-TK-41 fase 4: cada dia (cron) la bitacora de ayer pasa a BITACORA_CONSULTAS.
+	async scheduled(_evento: ScheduledController, env: Env, ctx: ExecutionContext) {
+		ctx.waitUntil(
+			exportar(env, appendFilas).catch((err) => {
+				console.log(JSON.stringify({ evento: "bitacora", resultado: "exporte_fallido", causa: err instanceof Error ? err.message : "error" }));
+			}),
+		);
 	},
 } satisfies ExportedHandler<Env>;

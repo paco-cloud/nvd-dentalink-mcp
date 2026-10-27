@@ -187,3 +187,30 @@ test("la cache vence a los 5 minutos y nada secreto va al log", async () => {
 		s.restaurar();
 	}
 });
+
+test("appendFilas: pide un token con permiso de escritura y manda las filas tal cual", async () => {
+	const s = simular(hojaOk);
+	const f = globalThis.fetch;
+	const llamadas: { url: string; body: any; auth: string }[] = [];
+	globalThis.fetch = (async (u: URL | string, init?: RequestInit) => {
+		const url = String(u);
+		if (url === sa.token_uri) {
+			const asercion = new URLSearchParams(String(init?.body)).get("assertion") ?? "";
+			const claims = JSON.parse(Buffer.from(asercion.split(".")[1], "base64url").toString());
+			assert.equal(claims.scope, "https://www.googleapis.com/auth/spreadsheets");
+			return new Response(JSON.stringify({ access_token: "token-escritura-falso" }), { status: 200 });
+		}
+		llamadas.push({ url, body: JSON.parse(String(init?.body)), auth: String((init?.headers as Record<string, string>).Authorization) });
+		return new Response("{}", { status: 200 });
+	}) as typeof fetch;
+	try {
+		await P.appendFilas({ GOOGLE_SA_JSON: JSON.stringify(sa), BITACORA_SHEET_ID: "hoja-bitacora" } as unknown as Env, [["a", null, "c"]]);
+		assert.equal(llamadas.length, 1);
+		assert.match(llamadas[0].url, /spreadsheets\/hoja-bitacora\/values\/BITACORA_CONSULTAS!A%3AJ:append\?valueInputOption=RAW/);
+		assert.equal(llamadas[0].auth, "Bearer token-escritura-falso");
+		assert.deepEqual(llamadas[0].body, { majorDimension: "ROWS", values: [["a", null, "c"]] });
+	} finally {
+		globalThis.fetch = f;
+		s.restaurar();
+	}
+});

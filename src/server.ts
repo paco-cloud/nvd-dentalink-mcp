@@ -2,6 +2,7 @@ import { McpServer } from "@modelcontextprotocol/server";
 import { getMcpAuthContext } from "agents/mcp/server";
 import { z } from "zod";
 import { DentalinkError } from "./dentalink.ts";
+import { ahoraMx, fileDe, registrar, type Resultado } from "./bitacora.ts";
 import { filtrar } from "./filtro.ts";
 import { compuerta, logFiltro } from "./perfiles.ts";
 import * as T from "./tools.ts";
@@ -29,11 +30,26 @@ function correoActual(): string | null {
 	return typeof email === "string" ? email : null;
 }
 
-async function run(env: Env, herramienta: string, fn: () => Promise<unknown>): Promise<ToolResult> {
+/** `file`: el File consultado, si la herramienta lo recibe. Es lo unico de los argumentos que va a la bitacora. */
+async function run(env: Env, herramienta: string, fn: () => Promise<unknown>, file?: unknown): Promise<ToolResult> {
 	// Perfil por llamada (NVD-TK-41): en modo «activo» niega; en «sombra» solo registra.
 	const correo = correoActual();
 	const c = await compuerta(env, correo, herramienta);
-	if (c.negado) return { content: [{ type: "text", text: c.negado }], isError: true };
+	const entrada = {
+		fecha_hora_mx: ahoraMx(),
+		correo,
+		perfil: c.perfil?.perfil ?? null,
+		herramienta,
+		file: fileDe(file),
+		resultado: c.resultado as Resultado,
+		modo: c.modo,
+		motivo: c.motivo,
+		quitado: [] as string[],
+	};
+	if (c.negado) {
+		await registrar(env, entrada);
+		return { content: [{ type: "text", text: c.negado }], isError: true };
+	}
 	try {
 		let r = await fn();
 		// Filtro por campo y por fila (fase 3): en sombra solo se registra; en activo se aplica.
@@ -41,7 +57,12 @@ async function run(env: Env, herramienta: string, fn: () => Promise<unknown>): P
 			const f = await filtrar(env, c.perfil, herramienta, c.modo === "activo" ? r : structuredClone(r));
 			logFiltro(herramienta, correo, c.perfil, c.modo, f.quitado);
 			if (c.modo === "activo") r = f.resultado;
+			if (f.quitado.length) {
+				entrada.quitado = f.quitado;
+				entrada.resultado = c.modo === "activo" ? "filtrado" : "filtraria";
+			}
 		}
+		await registrar(env, entrada);
 		return { content: [{ type: "text", text: JSON.stringify(r) }] };
 	} catch (err) {
 		// Sin detalle de la respuesta de Dentalink: puede traer datos.
@@ -108,7 +129,7 @@ export function createServer(env: Env): McpServer {
 			inputSchema: { file },
 			annotations: soloLectura,
 		},
-		async (a) => run(env, "citas_paciente", () => T.citas_paciente(env, a)),
+		async (a) => run(env, "citas_paciente", () => T.citas_paciente(env, a), a.file),
 	);
 
 	server.registerTool(
@@ -143,7 +164,7 @@ export function createServer(env: Env): McpServer {
 			inputSchema: { file },
 			annotations: soloLectura,
 		},
-		async (a) => run(env, "laboratorio_paciente", () => T.laboratorio_paciente(env, a)),
+		async (a) => run(env, "laboratorio_paciente", () => T.laboratorio_paciente(env, a), a.file),
 	);
 
 	server.registerTool(

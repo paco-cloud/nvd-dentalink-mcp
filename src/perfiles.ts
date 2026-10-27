@@ -34,7 +34,9 @@ export class PerfilNoDisponible extends Error {
 
 export const cache = { ttlMs: 5 * 60e3, tokenMs: 50 * 60e3 };
 let filas: { leidas: number; porCorreo: Map<string, Perfil> } | null = null;
-let token: { valor: string; vence: number } | null = null;
+const tokens = new Map<string, { valor: string; vence: number }>();
+const LECTURA = "https://www.googleapis.com/auth/spreadsheets.readonly";
+const ESCRITURA = "https://www.googleapis.com/auth/spreadsheets";
 
 export function modo(env: { PERFILES_MODO?: string }): Modo {
 	const m = (env.PERFILES_MODO ?? "").trim().toLowerCase();
@@ -76,13 +78,13 @@ function pemABytes(pem: string): Uint8Array {
 }
 
 /** JWT RS256 firmado con la cuenta de servicio, para pedir un token de solo lectura de Sheets. */
-export async function firmarAsercion(sa: { client_email: string; private_key: string; token_uri?: string }, ahora = Date.now()): Promise<string> {
+export async function firmarAsercion(sa: { client_email: string; private_key: string; token_uri?: string }, ahora = Date.now(), scope = LECTURA): Promise<string> {
 	const iat = Math.floor(ahora / 1000);
 	const header = b64url(JSON.stringify({ alg: "RS256", typ: "JWT" }));
 	const claims = b64url(
 		JSON.stringify({
 			iss: sa.client_email,
-			scope: "https://www.googleapis.com/auth/spreadsheets.readonly",
+			scope,
 			aud: sa.token_uri ?? "https://oauth2.googleapis.com/token",
 			iat,
 			exp: iat + 3600,
@@ -93,21 +95,33 @@ export async function firmarAsercion(sa: { client_email: string; private_key: st
 	return `${header}.${claims}.${b64url(firma)}`;
 }
 
-async function tokenGoogle(env: Env): Promise<string> {
-	if (token && token.vence > Date.now()) return token.valor;
+async function tokenGoogle(env: Env, scope = LECTURA): Promise<string> {
+	const t = tokens.get(scope);
+	if (t && t.vence > Date.now()) return t.valor;
 	const sa = JSON.parse(env.GOOGLE_SA_JSON ?? "{}");
 	if (!sa.client_email || !sa.private_key) throw new Error("GOOGLE_SA_JSON incompleto");
 	const uri = sa.token_uri ?? "https://oauth2.googleapis.com/token";
 	const res = await fetch(uri, {
 		method: "POST",
 		headers: { "Content-Type": "application/x-www-form-urlencoded" },
-		body: new URLSearchParams({ grant_type: "urn:ietf:params:oauth:grant-type:jwt-bearer", assertion: await firmarAsercion(sa) }),
+		body: new URLSearchParams({ grant_type: "urn:ietf:params:oauth:grant-type:jwt-bearer", assertion: await firmarAsercion(sa, Date.now(), scope) }),
 	});
 	if (!res.ok) throw new Error(`token de Google: ${res.status}`);
 	const body: any = await res.json();
 	if (typeof body?.access_token !== "string") throw new Error("token de Google sin access_token");
-	token = { valor: body.access_token, vence: Date.now() + cache.tokenMs };
-	return token.valor;
+	tokens.set(scope, { valor: body.access_token, vence: Date.now() + cache.tokenMs });
+	return body.access_token;
+}
+
+/** Agrega filas al final de BITACORA_CONSULTAS (fase 4). Token con permiso de escritura solo para esto. */
+export async function appendFilas(env: Env, filas: (string | null)[][]): Promise<void> {
+	const url = `https://sheets.googleapis.com/v4/spreadsheets/${encodeURIComponent(env.BITACORA_SHEET_ID)}/values/${encodeURIComponent("BITACORA_CONSULTAS!A:J")}:append?valueInputOption=RAW&insertDataOption=INSERT_ROWS`;
+	const res = await fetch(url, {
+		method: "POST",
+		headers: { Authorization: `Bearer ${await tokenGoogle(env, ESCRITURA)}`, "Content-Type": "application/json" },
+		body: JSON.stringify({ majorDimension: "ROWS", values: filas }),
+	});
+	if (!res.ok) throw new Error(`Sheets append: ${res.status}`);
 }
 
 /** Lee la hoja (con cache de 5 min). Lanza PerfilNoDisponible si no se puede. */
@@ -133,7 +147,7 @@ export async function cargarPerfiles(env: Env): Promise<Map<string, Perfil>> {
 /** Vacia la cache (pruebas). */
 export function olvidar(): void {
 	filas = null;
-	token = null;
+	tokens.clear();
 }
 
 export type Motivo = "sin_correo" | "sin_fila" | "no_disponible" | "herramienta_desconocida" | "perfil_sin_grupo" | "sin_bandera";
@@ -163,7 +177,7 @@ export const MENSAJE: Record<Motivo, string> = {
 	sin_bandera: "Sin permiso: tu perfil puede, pero a tu cuenta le falta la autorización en USUARIOS_ROLES.",
 };
 
-export type Compuerta = { negado: string | null; perfil: Perfil | null; modo: Modo };
+export type Compuerta = { negado: string | null; perfil: Perfil | null; modo: Modo; resultado: string; motivo: Motivo | null };
 
 /**
  * Compuerta de cada llamada. `negado` es el mensaje de negacion (y la llamada no
@@ -187,7 +201,7 @@ export async function compuerta(env: Env, correo: string | null, herramienta: st
 			motivo: d && !d.permitido ? d.motivo : null,
 		}),
 	);
-	return { negado: d && !d.permitido && m === "activo" ? MENSAJE[d.motivo] : null, perfil: d?.perfil ?? null, modo: m };
+	return { negado: d && !d.permitido && m === "activo" ? MENSAJE[d.motivo] : null, perfil: d?.perfil ?? null, modo: m, resultado, motivo: d && !d.permitido ? d.motivo : null };
 }
 
 /** Log del filtro por campo (fase 3): solo nombres de campos y conteos. */
