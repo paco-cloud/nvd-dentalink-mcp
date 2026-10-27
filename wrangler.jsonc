@@ -50,6 +50,9 @@
 	},
 	"secrets": {
 		"required": [
+			// nvdasistentes. NVD-TK-41 fase 6: DENTALINK_TOKEN_AGENDA, _CLINICO y _PAGOS son
+			// opcionales mientras se cargan (src/llaves.ts). Al retirar nvdasistentes, este
+			// renglon se cambia por DENTALINK_TOKEN_AGENDA y DENTALINK_TOKEN_CLINICO.
 			"DENTALINK_TOKEN",
 			// Cuenta de servicio de Google con lectura en NVD · Catalogos (NVD-TK-41).
 			"GOOGLE_SA_JSON",

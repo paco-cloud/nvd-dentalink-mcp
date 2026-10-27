@@ -4,6 +4,7 @@ import { z } from "zod";
 import { DentalinkError } from "./dentalink.ts";
 import { ahoraMx, fileDe, registrar, type Resultado } from "./bitacora.ts";
 import { filtrar } from "./filtro.ts";
+import { conLlave, llaveDe, LlaveNoDisponible } from "./llaves.ts";
 import { compuerta, logFiltro } from "./perfiles.ts";
 import * as T from "./tools.ts";
 
@@ -31,7 +32,7 @@ function correoActual(): string | null {
 }
 
 /** `file`: el File consultado, si la herramienta lo recibe. Es lo unico de los argumentos que va a la bitacora. */
-async function run(env: Env, herramienta: string, fn: () => Promise<unknown>, file?: unknown): Promise<ToolResult> {
+async function run(env: Env, herramienta: string, fn: (env: Env) => Promise<unknown>, file?: unknown): Promise<ToolResult> {
 	// Perfil por llamada (NVD-TK-41): en modo «activo» niega; en «sombra» solo registra.
 	const correo = correoActual();
 	const c = await compuerta(env, correo, herramienta);
@@ -51,10 +52,14 @@ async function run(env: Env, herramienta: string, fn: () => Promise<unknown>, fi
 		return { content: [{ type: "text", text: c.negado }], isError: true };
 	}
 	try {
-		let r = await fn();
+		// Llave de Dentalink del dominio de la herramienta (fase 6). Solo se registra el dominio.
+		const llave = llaveDe(env, herramienta);
+		console.log(JSON.stringify({ evento: "llave", herramienta, dominio: llave.dominio, origen: llave.origen }));
+		const e = conLlave(env, llave);
+		let r = await fn(e);
 		// Filtro por campo y por fila (fase 3): en sombra solo se registra; en activo se aplica.
 		if (c.perfil) {
-			const f = await filtrar(env, c.perfil, herramienta, c.modo === "activo" ? r : structuredClone(r));
+			const f = await filtrar(e, c.perfil, herramienta, c.modo === "activo" ? r : structuredClone(r));
 			logFiltro(herramienta, correo, c.perfil, c.modo, f.quitado);
 			if (c.modo === "activo") r = f.resultado;
 			if (f.quitado.length) {
@@ -67,7 +72,7 @@ async function run(env: Env, herramienta: string, fn: () => Promise<unknown>, fi
 	} catch (err) {
 		// Sin detalle de la respuesta de Dentalink: puede traer datos.
 		const msg =
-			err instanceof T.UsoError
+			err instanceof T.UsoError || err instanceof LlaveNoDisponible
 				? err.message
 				: err instanceof DentalinkError
 					? err.status === 429
@@ -76,7 +81,7 @@ async function run(env: Env, herramienta: string, fn: () => Promise<unknown>, fi
 					: "Error al consultar Dentalink.";
 		// Tambien queda en la bitacora: quien intento que y por que fallo (sin cuerpo de Dentalink).
 		entrada.resultado = "error";
-		entrada.motivo = err instanceof T.UsoError ? "uso" : err instanceof DentalinkError ? `dentalink_${err.status}` : "error";
+		entrada.motivo = err instanceof T.UsoError ? "uso" : err instanceof LlaveNoDisponible ? "sin_llave" : err instanceof DentalinkError ? `dentalink_${err.status}` : "error";
 		await registrar(env, entrada);
 		return { content: [{ type: "text", text: msg }], isError: true };
 	}
@@ -92,7 +97,7 @@ export function createServer(env: Env): McpServer {
 			inputSchema: { fecha: fecha.optional().describe("AAAA-MM-DD; por defecto hoy"), id_dentista: idDentista.optional() },
 			annotations: soloLectura,
 		},
-		async (a) => run(env, "agenda_dia", () => T.agenda_dia(env, a)),
+		async (a) => run(env, "agenda_dia", (e) => T.agenda_dia(e, a)),
 	);
 
 	server.registerTool(
@@ -102,7 +107,7 @@ export function createServer(env: Env): McpServer {
 			inputSchema: { dias: dias(2).optional() },
 			annotations: soloLectura,
 		},
-		async (a) => run(env, "confirmaciones_pendientes", () => T.confirmaciones_pendientes(env, a)),
+		async (a) => run(env, "confirmaciones_pendientes", (e) => T.confirmaciones_pendientes(e, a)),
 	);
 
 	server.registerTool(
@@ -113,7 +118,7 @@ export function createServer(env: Env): McpServer {
 			inputSchema: { dias: dias(3).optional(), id_dentista: idDentista.optional() },
 			annotations: soloLectura,
 		},
-		async (a) => run(env, "citas_proximas", () => T.citas_proximas(env, a)),
+		async (a) => run(env, "citas_proximas", (e) => T.citas_proximas(e, a)),
 	);
 
 	server.registerTool(
@@ -123,7 +128,7 @@ export function createServer(env: Env): McpServer {
 			inputSchema: { texto: z.string().min(3).max(80) },
 			annotations: soloLectura,
 		},
-		async (a) => run(env, "buscar_paciente", () => T.buscar_paciente(env, a)),
+		async (a) => run(env, "buscar_paciente", (e) => T.buscar_paciente(e, a)),
 	);
 
 	server.registerTool(
@@ -133,7 +138,7 @@ export function createServer(env: Env): McpServer {
 			inputSchema: { file },
 			annotations: soloLectura,
 		},
-		async (a) => run(env, "citas_paciente", () => T.citas_paciente(env, a), a.file),
+		async (a) => run(env, "citas_paciente", (e) => T.citas_paciente(e, a), a.file),
 	);
 
 	server.registerTool(
@@ -147,7 +152,7 @@ export function createServer(env: Env): McpServer {
 			},
 			annotations: soloLectura,
 		},
-		async (a) => run(env, "huecos", () => T.huecos(env, a)),
+		async (a) => run(env, "huecos", (e) => T.huecos(e, a)),
 	);
 
 	server.registerTool(
@@ -157,7 +162,7 @@ export function createServer(env: Env): McpServer {
 			inputSchema: {},
 			annotations: soloLectura,
 		},
-		async () => run(env, "dentistas", () => T.dentistas(env)),
+		async () => run(env, "dentistas", (e) => T.dentistas(e)),
 	);
 
 	server.registerTool(
@@ -168,7 +173,7 @@ export function createServer(env: Env): McpServer {
 			inputSchema: { file },
 			annotations: soloLectura,
 		},
-		async (a) => run(env, "laboratorio_paciente", () => T.laboratorio_paciente(env, a), a.file),
+		async (a) => run(env, "laboratorio_paciente", (e) => T.laboratorio_paciente(e, a), a.file),
 	);
 
 	server.registerTool(
@@ -178,7 +183,7 @@ export function createServer(env: Env): McpServer {
 			inputSchema: {},
 			annotations: soloLectura,
 		},
-		async () => run(env, "laboratorios", () => T.laboratorios(env)),
+		async () => run(env, "laboratorios", (e) => T.laboratorios(e)),
 	);
 
 	return server;
