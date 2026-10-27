@@ -102,13 +102,20 @@ test("activo: correo sin fila, inactivo, «Por confirmar» o sin correo → nega
 		assert.match((await P.compuerta(e, "nadie@novodent.mx", "agenda_dia")) ?? "", /Sin permiso/);
 		assert.match((await P.compuerta(e, "eli@novodent.mx", "agenda_dia")) ?? "", /Sin permiso/);
 		assert.match((await P.compuerta(e, "dani@novodent.mx", "agenda_dia")) ?? "", /Sin permiso/);
+		// Con perfil valido pero sin el grupo (matriz, fase 2) tambien se niega.
+		assert.match((await P.compuerta(e, "ana@novodent.mx", "crear_evolucion")) ?? "", /tu perfil no puede/);
+		assert.match((await P.compuerta(e, "cris@novodent.mx", "registrar_pago")) ?? "", /tu perfil no puede/);
+		assert.equal(await P.compuerta(e, "cris@novodent.mx", "crear_evolucion"), null);
+		assert.equal(await P.compuerta(e, "beto@novodent.mx", "registrar_pago"), null); // tiene la bandera
+		assert.match((await P.compuerta(e, "ana@novodent.mx", "registrar_pago")) ?? "", /tu perfil puede, pero/); // sin bandera
 		assert.match((await P.compuerta(e, null, "agenda_dia")) ?? "", /Sin permiso/);
 		// La hoja se leyo una sola vez (cache de 5 min): un token y una lectura.
 		assert.equal(s.llamadas.length, 2);
 		const ultimo = JSON.parse(s.logs.at(-1)!);
-		assert.deepEqual(ultimo, { evento: "herramienta", herramienta: "agenda_dia", correo: null, perfil: null, modo: "activo", resultado: "negado", motivo: "sin_correo" });
+		assert.deepEqual(ultimo, { evento: "herramienta", herramienta: "agenda_dia", correo: null, perfil: null, grupo: null, modo: "activo", resultado: "negado", motivo: "sin_correo" });
 		const primero = JSON.parse(s.logs.find((l) => l.includes('"permitido"'))!);
 		assert.equal(primero.perfil, "Atención a Clientes");
+		assert.equal(primero.grupo, "agenda");
 	} finally {
 		s.restaurar();
 	}
@@ -136,14 +143,18 @@ test("activo: Google rechaza el token → negar", async () => {
 	}
 });
 
-test("sombra: registra lo que negaria pero deja pasar", async () => {
+test("sombra: registra lo que negaria (sin fila o por la matriz) pero deja pasar", async () => {
 	const s = simular(hojaOk);
 	try {
 		assert.equal(await P.compuerta(env("sombra"), "nadie@novodent.mx", "huecos"), null);
-		const l = JSON.parse(s.logs.at(-1)!);
+		let l = JSON.parse(s.logs.at(-1)!);
 		assert.equal(l.resultado, "negaria");
 		assert.equal(l.motivo, "sin_fila");
 		assert.equal(l.modo, "sombra");
+		// Jefatura administrativa sin la bandera registra_pagos: la matriz la negaria.
+		assert.equal(await P.compuerta(env("sombra"), "beto@novodent.mx", "crear_evolucion"), null);
+		l = JSON.parse(s.logs.at(-1)!);
+		assert.deepEqual([l.resultado, l.motivo, l.perfil], ["negaria", "perfil_sin_grupo", "Jefatura administrativa"]);
 	} finally {
 		s.restaurar();
 	}

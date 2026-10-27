@@ -18,6 +18,7 @@ Ningún sistema existente depende de este Worker.
 | `src/dentalink.ts` | Cliente **solo GET**: 1 consulta cada 1.1 s, reintento en 429, paginación solo dentro de la base |
 | `src/tools.ts` | Las 9 herramientas, portadas de `nvd-mcp.js`. Cada respuesta se arma campo por campo (lista blanca) |
 | `src/perfiles.ts` | **NVD-TK-41:** perfil por llamada desde `NVD · Catálogos › USUARIOS_ROLES` (Sheets, cuenta de servicio `GOOGLE_SA_JSON`, cache 5 min). Falla cerrado. `PERFILES_MODO`: `apagado` (reversa) · `sombra` (registra lo que negaría) · `activo` (niega) |
+| `src/matriz.ts` + `perfiles/matriz.json` | **NVD-TK-41 fase 2:** matriz perfil × herramienta (grupos agenda, paciente, contacto, pagos, clinico, laboratorio y los de escritura con bandera). Versionada, sin datos personales; un JSON mal hecho tumba el deploy. Herramienta o perfil fuera de la matriz → negar |
 | `src/server.ts` | Registro MCP con validación de entradas (zod). Log: solo `{herramienta, correo, perfil, modo, resultado, motivo}` |
 
 Rutas: `/mcp`, `/authorize`, `/callback`, `/token`, `/register` y `/.well-known/*`.

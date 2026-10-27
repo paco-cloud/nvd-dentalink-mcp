@@ -1,0 +1,40 @@
+{
+	"version": "2026-10-26 · PROPUESTA de NVD-TK-41 §2, pendiente de que Mel la confirme contra «Perfiles Dentalink»",
+	"nota": "Sin datos personales. Los perfiles son los de NVD · Catálogos › USUARIOS_ROLES, columna «perfil». «Por confirmar» no aparece: se niega todo. Un perfil o herramienta que no esté aquí se niega (falla cerrado).",
+	"grupos": {
+		"agenda": "Citas, huecos y profesionales, sin datos de contacto ni montos",
+		"paciente": "Buscar un paciente y ver sus citas (sin contacto: ese es el grupo «contacto»)",
+		"contacto": "Celular enmascarado y correo del paciente (fase 3 lo filtra por campo)",
+		"pagos": "Pagos, saldos, compromisos y cajas (lectura)",
+		"clinico": "Información clínica, recetas y evoluciones (lectura)",
+		"laboratorio": "Prestaciones con solicitud a laboratorio y catálogo de laboratorios",
+		"escribir_pago": "Registrar un pago o compromiso. Además exige la bandera registra_pagos",
+		"escribir_evolucion": "Evolución en borrador. Además exige escribe_evoluciones y sigue bloqueada por lo legal"
+	},
+	"herramientas": {
+		"agenda_dia": { "grupo": "agenda" },
+		"citas_proximas": { "grupo": "agenda" },
+		"confirmaciones_pendientes": { "grupo": "agenda" },
+		"huecos": { "grupo": "agenda" },
+		"dentistas": { "grupo": "agenda" },
+		"buscar_paciente": { "grupo": "paciente" },
+		"citas_paciente": { "grupo": "paciente" },
+		"laboratorio_paciente": { "grupo": "laboratorio" },
+		"laboratorios": { "grupo": "laboratorio" },
+		"registrar_pago": { "grupo": "escribir_pago", "bandera": "registra_pagos" },
+		"crear_evolucion": { "grupo": "escribir_evolucion", "bandera": "escribe_evoluciones" }
+	},
+	"perfiles": {
+		"Dirección": ["agenda", "paciente", "contacto", "pagos", "clinico", "laboratorio", "escribir_pago"],
+		"Jefatura administrativa": ["agenda", "paciente", "contacto", "pagos", "laboratorio", "escribir_pago"],
+		"Auxiliar administrativa": ["agenda", "paciente", "contacto", "pagos", "escribir_pago"],
+		"Atención a Clientes": ["agenda", "paciente", "contacto", "pagos", "laboratorio", "escribir_pago"],
+		"Doctor": ["agenda", "paciente", "clinico", "laboratorio", "escribir_evolucion"],
+		"Auxiliar clínico": ["agenda", "paciente", "clinico", "laboratorio", "escribir_evolucion"],
+		"Laboratorio": ["agenda", "paciente", "laboratorio"]
+	},
+	"restricciones_fase_3": {
+		"Laboratorio": "En agenda sólo profesionales de prótesis, ortodoncia y cirugía (filtro por fila, fase 3)",
+		"Dirección": "Clínico sólo lectura; contacto enmascarado (fase 3)"
+	}
+}

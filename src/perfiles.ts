@@ -6,7 +6,8 @@
  *   A correo · E puede_registrar_pagos · F puede_anular · G puede_escribir_evoluciones
  *   H activo · K perfil. Nombres, puestos y notas no se leen ni se guardan.
  *
- * Falla cerrado: sin hoja, sin fila, inactivo o «Por confirmar» → negar.
+ * Falla cerrado: sin hoja, sin fila, inactivo o «Por confirmar» → negar. Con perfil,
+ * la matriz por herramienta (matriz.ts, fase 2) decide si esa herramienta pasa.
  * Cache en memoria de 5 minutos por isolate; si la hoja no responde y no hay
  * cache vigente, se niega (no se usa una copia vieja).
  *
@@ -17,16 +18,10 @@
  * Nunca registra el JSON de la cuenta de servicio ni el token de Google.
  */
 
-export const PERFILES = ["Dirección", "Jefatura administrativa", "Auxiliar administrativa", "Atención a Clientes", "Doctor", "Auxiliar clínico", "Laboratorio"] as const;
-export type NombrePerfil = (typeof PERFILES)[number];
+import { permite } from "./matriz.ts";
+import { PERFILES, type NombrePerfil, type Perfil } from "./perfil-tipos.ts";
 
-export type Perfil = {
-	correo: string;
-	perfil: NombrePerfil;
-	registra_pagos: boolean;
-	anula: boolean;
-	escribe_evoluciones: boolean;
-};
+export { PERFILES, type NombrePerfil, type Perfil };
 
 export type Modo = "apagado" | "sombra" | "activo";
 
@@ -141,25 +136,31 @@ export function olvidar(): void {
 	token = null;
 }
 
-export type Decision = { permitido: true; perfil: Perfil } | { permitido: false; motivo: "sin_correo" | "sin_fila" | "no_disponible" };
+export type Motivo = "sin_correo" | "sin_fila" | "no_disponible" | "herramienta_desconocida" | "perfil_sin_grupo" | "sin_bandera";
+export type Decision = { permitido: true; perfil: Perfil; grupo: string } | { permitido: false; motivo: Motivo; perfil: Perfil | null };
 
-/** Perfil de quien llama, o el motivo por el que se niega. No lanza. */
-export async function decidir(env: Env, correo: unknown): Promise<Decision> {
-	if (typeof correo !== "string" || !correo.trim()) return { permitido: false, motivo: "sin_correo" };
+/** Perfil de quien llama y veredicto de la matriz para la herramienta. No lanza. */
+export async function decidir(env: Env, correo: unknown, herramienta: string): Promise<Decision> {
+	if (typeof correo !== "string" || !correo.trim()) return { permitido: false, motivo: "sin_correo", perfil: null };
 	let mapa: Map<string, Perfil>;
 	try {
 		mapa = await cargarPerfiles(env);
 	} catch {
-		return { permitido: false, motivo: "no_disponible" };
+		return { permitido: false, motivo: "no_disponible", perfil: null };
 	}
 	const perfil = mapa.get(correo.trim().toLowerCase());
-	return perfil ? { permitido: true, perfil } : { permitido: false, motivo: "sin_fila" };
+	if (!perfil) return { permitido: false, motivo: "sin_fila", perfil: null };
+	const v = permite(perfil, herramienta);
+	return v.ok ? { permitido: true, perfil, grupo: v.grupo } : { permitido: false, motivo: v.motivo, perfil };
 }
 
-export const MENSAJE: Record<Exclude<Decision, { permitido: true }>["motivo"], string> = {
+export const MENSAJE: Record<Motivo, string> = {
 	sin_correo: "Sin permiso: no hay inicio de sesión.",
 	sin_fila: "Sin permiso: tu correo no tiene un perfil activo en USUARIOS_ROLES. Pide a Mel que lo revise.",
 	no_disponible: new PerfilNoDisponible().message,
+	herramienta_desconocida: "Sin permiso: esta herramienta no está en la matriz de perfiles.",
+	perfil_sin_grupo: "Sin permiso: tu perfil no puede usar esta herramienta.",
+	sin_bandera: "Sin permiso: tu perfil puede, pero a tu cuenta le falta la autorización en USUARIOS_ROLES.",
 };
 
 /**
@@ -169,14 +170,15 @@ export const MENSAJE: Record<Exclude<Decision, { permitido: true }>["motivo"], s
  */
 export async function compuerta(env: Env, correo: string | null, herramienta: string): Promise<string | null> {
 	const m = modo(env);
-	const d = m === "apagado" ? null : await decidir(env, correo);
+	const d = m === "apagado" ? null : await decidir(env, correo, herramienta);
 	const resultado = !d ? "sin_filtro" : d.permitido ? "permitido" : m === "activo" ? "negado" : "negaria";
 	console.log(
 		JSON.stringify({
 			evento: "herramienta",
 			herramienta,
 			correo,
-			perfil: d?.permitido ? d.perfil.perfil : null,
+			perfil: d?.perfil?.perfil ?? null,
+			grupo: d?.permitido ? d.grupo : null,
 			modo: m,
 			resultado,
 			motivo: d && !d.permitido ? d.motivo : null,
