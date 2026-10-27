@@ -117,5 +117,16 @@
 			],
 			"_nota": "En agenda_dia, citas_proximas, confirmaciones_pendientes, huecos y dentistas solo ve a los profesionales de estas especialidades"
 		}
+	},
+	"llaves": {
+		"_nota": "Fase 6. Grupo → llave de Dentalink (dominio). agenda = nvdagenda, clinico = nvdclinico, pagos = nvdpagos. Laboratorio va con clínico [PROPUESTA: Mel decide si las prestaciones de laboratorio son clínicas]. Un grupo sin llave se niega.",
+		"agenda": "agenda",
+		"paciente": "agenda",
+		"contacto": "agenda",
+		"laboratorio": "clinico",
+		"clinico": "clinico",
+		"escribir_evolucion": "clinico",
+		"pagos": "pagos",
+		"escribir_pago": "pagos"
 	}
 }

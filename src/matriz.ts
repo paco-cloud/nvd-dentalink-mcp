@@ -19,7 +19,13 @@ export type Matriz = {
 	campos: Record<string, Record<string, string>>;
 	/** Fase 3: perfil → filtros por fila. */
 	restricciones: Partial<Record<NombrePerfil, { agenda_especialidades?: string[] }>>;
+	/** Fase 6: grupo → llave de Dentalink (dominio). */
+	llaves: Record<string, Dominio>;
 };
+
+/** Llaves de Dentalink por dominio (fase 6): nvdagenda, nvdclinico, nvdpagos. */
+export const DOMINIOS = ["agenda", "clinico", "pagos"] as const;
+export type Dominio = (typeof DOMINIOS)[number];
 
 const BANDERAS: readonly Bandera[] = ["registra_pagos", "anula", "escribe_evoluciones"];
 
@@ -48,6 +54,12 @@ export function validar(m: unknown): Matriz {
 		if (!(PERFILES as readonly string[]).includes(p)) throw new Error(`matriz.json: restriccion de un perfil desconocido (${p})`);
 		if (r?.agenda_especialidades !== undefined && (!Array.isArray(r.agenda_especialidades) || r.agenda_especialidades.length === 0)) throw new Error(`matriz.json: agenda_especialidades de ${p} vacia`);
 	}
+	x.llaves = Object.fromEntries(sinNotas(x.llaves ?? {})) as Matriz["llaves"];
+	for (const [g, d] of Object.entries(x.llaves)) {
+		if (!(g in x.grupos)) throw new Error(`matriz.json: llave de un grupo desconocido (${g})`);
+		if (!(DOMINIOS as readonly string[]).includes(d)) throw new Error(`matriz.json: el grupo ${g} usa una llave desconocida`);
+	}
+	for (const [h, def] of Object.entries(x.herramientas)) if (!(def.grupo in x.llaves)) throw new Error(`matriz.json: el grupo de ${h} no tiene llave`);
 	return x;
 }
 

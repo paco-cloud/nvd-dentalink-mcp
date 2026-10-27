@@ -21,6 +21,7 @@ Ningún sistema existente depende de este Worker.
 | `src/matriz.ts` + `perfiles/matriz.json` | **NVD-TK-41 fase 2:** matriz perfil × herramienta (grupos agenda, paciente, contacto, pagos, clinico, laboratorio y los de escritura con bandera). Versionada, sin datos personales; un JSON mal hecho tumba el deploy. Herramienta o perfil fuera de la matriz → negar |
 | `src/filtro.ts` | **NVD-TK-41 fase 3:** filtro por campo y por fila sobre la respuesta, según `matriz.json › campos` (celular enmascarado sólo con grupo «contacto») y `restricciones` (Laboratorio: sólo profesionales de prótesis, ortodoncia y cirugía en la agenda). En `sombra` registra lo que quitaría; en `activo` lo quita |
 | `src/bitacora.ts` | **NVD-TK-41 fase 4:** bitácora de consultas en el KV `BITACORA` (90 días): fecha y hora, correo, perfil, herramienta, File, resultado, modo, motivo y campos quitados. Nunca nombres, celulares, montos ni texto clínico. Cron diario (06:00 México) la exporta a `NVD · Operación clínica › BITACORA_CONSULTAS`; un marcador en KV evita duplicados y si la hoja falla se reintenta al día siguiente |
+| `src/llaves.ts` | **NVD-TK-41 fase 6:** llave de Dentalink por dominio según `matriz.json › llaves`: agenda y pacientes → `DENTALINK_TOKEN_AGENDA` (nvdagenda); laboratorio y clínico → `DENTALINK_TOKEN_CLINICO` (nvdclinico); pagos → `DENTALINK_TOKEN_PAGOS` (nvdpagos). Mientras falte una, usa `DENTALINK_TOKEN` (nvdasistentes); sin ninguna, niega con motivo `sin_llave`. El log `llave` dice dominio y origen (`dominio` o `respaldo`), nunca el valor |
 | `src/server.ts` | Registro MCP con validación de entradas (zod). Log: solo `{herramienta, correo, perfil, modo, resultado, motivo}` |
 
 Rutas: `/mcp`, `/authorize`, `/callback`, `/token`, `/register` y `/.well-known/*`.
@@ -76,7 +77,10 @@ application › SaaS application › nombre «Novodent · Conector Dentalink» �
 
 ```bash
 # El KV OAUTH_KV ya existe (id en wrangler.jsonc), creado el 12-oct-2026.
-npx wrangler secret put DENTALINK_TOKEN        # llave nvdasistentes
+npx wrangler secret put DENTALINK_TOKEN        # llave nvdasistentes (se retira en NVD-TK-41 fase 6)
+npx wrangler secret put DENTALINK_TOKEN_AGENDA # fase 6: nvdagenda
+npx wrangler secret put DENTALINK_TOKEN_CLINICO # fase 6: nvdclinico
+npx wrangler secret put DENTALINK_TOKEN_PAGOS  # fase 6: nvdpagos (cuando haya herramientas de pagos)
 npx wrangler secret put ACCESS_CLIENT_ID
 npx wrangler secret put ACCESS_CLIENT_SECRET
 npx wrangler secret put ACCESS_TOKEN_URL
