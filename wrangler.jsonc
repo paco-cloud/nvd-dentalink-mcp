@@ -17,19 +17,41 @@
 			"binding": "OAUTH_KV",
 			// KV «nvd-dentalink-mcp-OAUTH_KV», creado el 12-oct-2026 (fase 3). No es secreto.
 			"id": "888656b321ce4674bfbf5308e2e9e5d9"
+		},
+		{
+			"binding": "BITACORA",
+			// KV «nvd-dentalink-mcp-BITACORA», creado el 26-oct-2026 (NVD-TK-41 fase 4).
+			// Entradas de 90 dias: quien consulto que File y cuando. Sin datos de pacientes.
+			"id": "2eff3b0105e44c2eb7e076126cd91436"
 		}
 	],
+	// NVD-TK-41 fase 4: 12:00 UTC = 06:00 en Mexico. Exporta la bitacora de ayer a la hoja.
+	"triggers": { "crons": ["0 12 * * *"] },
 	"vars": {
 		// Segunda barrera despues de la politica de Access: se revisa en el inicio de
 		// sesion Y en cada llamada, asi que quitar un correo aqui corta el acceso al
 		// siguiente deploy aunque la persona tenga un token vigente.
-		"ALLOWED_EMAILS": "andres@novodent.mx,maitte@novodent.mx,jared@novodent.mx,paco@novodent.mx,melanie.molina@novodent.mx",
+		// Igual que la politica de Access y que el panel al 27-oct-2026 (11 correos), mas
+		// prueba.conector@ para la bateria de NVD-TK-41 fase 5 (sin fila activa en
+		// USUARIOS_ROLES fuera de la prueba, asi que el filtro la niega). Si se edita en el
+		// panel, el siguiente deploy lo sobrescribe con este valor.
+		"ALLOWED_EMAILS": "andres@novodent.mx,maitte@novodent.mx,jared@novodent.mx,paco@novodent.mx,melanie.molina@novodent.mx,reyes@novodent.mx,sebastian@novodent.mx,myna.enriquez@novodent.mx,jocelyn@novodent.mx,wendolin@novodent.mx,brenda@novodent.mx,prueba.conector@novodent.mx",
 		// Confirmada contra nvd-mcp.js (12-oct-2026).
-		"DENTALINK_BASE_URL": "https://api.dentalink.healthatom.com/api/v1"
+		"DENTALINK_BASE_URL": "https://api.dentalink.healthatom.com/api/v1",
+		// NVD-TK-41: perfil por llamada desde NVD · Catalogos › USUARIOS_ROLES.
+		// El id de la hoja no es secreto; la cuenta de servicio (GOOGLE_SA_JSON) si.
+		"PERFILES_SHEET_ID": "1kn0sNs-M_qR-n_0XwWAYOZeCyYyanY5o1EcXcxdMPKM",
+		// apagado = comportamiento previo (reversa) · sombra = registra lo que negaria
+		// y responde · activo = niega. Se pasa a activo solo con OK de Paco (fase 5).
+		"PERFILES_MODO": "sombra",
+		// NVD · Operacion clinica › BITACORA_CONSULTAS (solo lectura para Mel y Paco).
+		"BITACORA_SHEET_ID": "1_JRuI1ETl8TO5qqtUoHoXzAwmihVsIyDoFT06PsOQtE"
 	},
 	"secrets": {
 		"required": [
 			"DENTALINK_TOKEN",
+			// Cuenta de servicio de Google con lectura en NVD · Catalogos (NVD-TK-41).
+			"GOOGLE_SA_JSON",
 			"ACCESS_CLIENT_ID",
 			"ACCESS_CLIENT_SECRET",
 			"ACCESS_TOKEN_URL",

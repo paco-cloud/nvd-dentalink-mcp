@@ -3,9 +3,14 @@
 // Runtime types generated with workerd@1.20261006.1 2026-09-23 nodejs_compat
 interface __BaseEnv_Env {
 	OAUTH_KV: KVNamespace;
-	ALLOWED_EMAILS: "andres@novodent.mx,maitte@novodent.mx,jared@novodent.mx,paco@novodent.mx,melanie.molina@novodent.mx";
+	BITACORA: KVNamespace;
+	ALLOWED_EMAILS: "andres@novodent.mx,maitte@novodent.mx,jared@novodent.mx,paco@novodent.mx,melanie.molina@novodent.mx,reyes@novodent.mx,sebastian@novodent.mx,myna.enriquez@novodent.mx,jocelyn@novodent.mx,wendolin@novodent.mx,brenda@novodent.mx,prueba.conector@novodent.mx";
 	DENTALINK_BASE_URL: "https://api.dentalink.healthatom.com/api/v1";
+	PERFILES_SHEET_ID: "1kn0sNs-M_qR-n_0XwWAYOZeCyYyanY5o1EcXcxdMPKM";
+	PERFILES_MODO: "sombra";
+	BITACORA_SHEET_ID: "1_JRuI1ETl8TO5qqtUoHoXzAwmihVsIyDoFT06PsOQtE";
 	DENTALINK_TOKEN: string;
+	GOOGLE_SA_JSON: string;
 	ACCESS_CLIENT_ID: string;
 	ACCESS_CLIENT_SECRET: string;
 	ACCESS_TOKEN_URL: string;
@@ -21,7 +26,7 @@ type StringifyValues<EnvType extends Record<string, unknown>> = {
 	[Binding in keyof EnvType]: EnvType[Binding] extends string ? EnvType[Binding] : string;
 };
 declare namespace NodeJS {
-	interface ProcessEnv extends StringifyValues<Pick<Cloudflare.Env, "ALLOWED_EMAILS" | "DENTALINK_BASE_URL" | "DENTALINK_TOKEN" | "ACCESS_CLIENT_ID" | "ACCESS_CLIENT_SECRET" | "ACCESS_TOKEN_URL" | "ACCESS_AUTHORIZATION_URL" | "ACCESS_JWKS_URL" | "COOKIE_ENCRYPTION_KEY">> {}
+	interface ProcessEnv extends StringifyValues<Pick<Cloudflare.Env, "ALLOWED_EMAILS" | "DENTALINK_BASE_URL" | "PERFILES_SHEET_ID" | "PERFILES_MODO" | "BITACORA_SHEET_ID" | "DENTALINK_TOKEN" | "GOOGLE_SA_JSON" | "ACCESS_CLIENT_ID" | "ACCESS_CLIENT_SECRET" | "ACCESS_TOKEN_URL" | "ACCESS_AUTHORIZATION_URL" | "ACCESS_JWKS_URL" | "COOKIE_ENCRYPTION_KEY">> {}
 }
 declare module "*.txt" {
 	const value: string;

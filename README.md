@@ -17,7 +17,11 @@ Ningún sistema existente depende de este Worker.
 | `src/allowlist.ts` | `ALLOWED_EMAILS`, segunda barrera tras la política de Access. Se revisa al entrar **y en cada llamada** |
 | `src/dentalink.ts` | Cliente **solo GET**: 1 consulta cada 1.1 s, reintento en 429, paginación solo dentro de la base |
 | `src/tools.ts` | Las 9 herramientas, portadas de `nvd-mcp.js`. Cada respuesta se arma campo por campo (lista blanca) |
-| `src/server.ts` | Registro MCP con validación de entradas (zod). Log: solo `{herramienta, correo}` |
+| `src/perfiles.ts` | **NVD-TK-41:** perfil por llamada desde `NVD · Catálogos › USUARIOS_ROLES` (Sheets, cuenta de servicio `GOOGLE_SA_JSON`, cache 5 min). Falla cerrado. `PERFILES_MODO`: `apagado` (reversa) · `sombra` (registra lo que negaría) · `activo` (niega) |
+| `src/matriz.ts` + `perfiles/matriz.json` | **NVD-TK-41 fase 2:** matriz perfil × herramienta (grupos agenda, paciente, contacto, pagos, clinico, laboratorio y los de escritura con bandera). Versionada, sin datos personales; un JSON mal hecho tumba el deploy. Herramienta o perfil fuera de la matriz → negar |
+| `src/filtro.ts` | **NVD-TK-41 fase 3:** filtro por campo y por fila sobre la respuesta, según `matriz.json › campos` (celular enmascarado sólo con grupo «contacto») y `restricciones` (Laboratorio: sólo profesionales de prótesis, ortodoncia y cirugía en la agenda). En `sombra` registra lo que quitaría; en `activo` lo quita |
+| `src/bitacora.ts` | **NVD-TK-41 fase 4:** bitácora de consultas en el KV `BITACORA` (90 días): fecha y hora, correo, perfil, herramienta, File, resultado, modo, motivo y campos quitados. Nunca nombres, celulares, montos ni texto clínico. Cron diario (06:00 México) la exporta a `NVD · Operación clínica › BITACORA_CONSULTAS`; un marcador en KV evita duplicados y si la hoja falla se reintenta al día siguiente |
+| `src/server.ts` | Registro MCP con validación de entradas (zod). Log: solo `{herramienta, correo, perfil, modo, resultado, motivo}` |
 
 Rutas: `/mcp`, `/authorize`, `/callback`, `/token`, `/register` y `/.well-known/*`.
 
@@ -45,8 +49,8 @@ Tokens: acceso 1 h, renovación 7 días. Después, entrar de nuevo con Access.
 | `laboratorio_paciente` | Prestaciones de hasta 4 planes activos con estado y solicitud a laboratorio |
 | `laboratorios` | Catálogo de laboratorios |
 
-Cada cita sale solo con: fecha, hora, duración, profesional, consultorio, estado,
-paciente (alias o nombre), File e id de la cita. Solo sucursal 1.
+Cada cita sale solo con: fecha, hora, duración, profesional (nombre e id), consultorio,
+estado, paciente (alias o nombre), File e id de la cita. Solo sucursal 1.
 
 Nunca salen evoluciones, diagnósticos, comentarios clínicos, montos ni el
 celular completo. Las pruebas (`test/tools.test.ts`) lo comprueban con datos

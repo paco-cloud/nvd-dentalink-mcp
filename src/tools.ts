@@ -33,6 +33,7 @@ export const cita = (c: Row) => ({
 	hora: String(c.hora_inicio ?? "").slice(0, 5),
 	duracion: c.duracion,
 	profesional: c.nombre_dentista,
+	id_profesional: c.id_dentista,
 	consultorio: c.nombre_sillon,
 	estado: ESTADO[c.id_estado] ?? c.estado_cita,
 	paciente: alias(c),
@@ -121,7 +122,7 @@ export async function huecos(env: Env, a: { fecha?: string; duracion?: number; i
 	return {
 		fecha: p.fecha,
 		total: h.length,
-		huecos: h.slice(0, 40).map((x) => ({ fecha: x.fecha, hora: x.hora_inicio, profesional: x.nombre_dentista, consultorio: x.id_recurso })),
+		huecos: h.slice(0, 40).map((x) => ({ fecha: x.fecha, hora: x.hora_inicio, profesional: x.nombre_dentista, id_profesional: x.id_dentista, consultorio: x.id_recurso })),
 	};
 }
 
