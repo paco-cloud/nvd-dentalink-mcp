@@ -42,8 +42,9 @@
 		// El id de la hoja no es secreto; la cuenta de servicio (GOOGLE_SA_JSON) si.
 		"PERFILES_SHEET_ID": "1kn0sNs-M_qR-n_0XwWAYOZeCyYyanY5o1EcXcxdMPKM",
 		// apagado = comportamiento previo (reversa) · sombra = registra lo que negaria
-		// y responde · activo = niega. Se pasa a activo solo con OK de Paco (fase 5).
-		"PERFILES_MODO": "sombra",
+		// y responde · activo = niega. Activo desde el 27-oct-2026: la bateria en vivo paso
+		// (fase 5) y Paco lo aprobo («déjalo en activo»).
+		"PERFILES_MODO": "activo",
 		// NVD · Operacion clinica › BITACORA_CONSULTAS (solo lectura para Mel y Paco).
 		"BITACORA_SHEET_ID": "1_JRuI1ETl8TO5qqtUoHoXzAwmihVsIyDoFT06PsOQtE"
 	},
