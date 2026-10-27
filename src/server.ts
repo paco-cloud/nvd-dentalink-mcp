@@ -2,11 +2,13 @@ import { McpServer } from "@modelcontextprotocol/server";
 import { getMcpAuthContext } from "agents/mcp/server";
 import { z } from "zod";
 import { DentalinkError } from "./dentalink.ts";
+import { compuerta } from "./perfiles.ts";
 import * as T from "./tools.ts";
 
 /**
  * Registro MCP de las 9 herramientas (logica en tools.ts). Cada llamada deja en
- * el log solo el nombre de la herramienta y el correo; nunca argumentos ni respuestas.
+ * el log solo el nombre de la herramienta, el correo y, desde NVD-TK-41, el perfil
+ * y el resultado (permitido o negado); nunca argumentos ni respuestas.
  */
 
 type ToolResult = { content: { type: "text"; text: string }[]; isError?: boolean };
@@ -21,13 +23,15 @@ const dias = (def: number) => z.number().int().min(1).max(7).describe(`1 a 7; po
 const file = z.string().min(1).max(20).describe("F-1234 o 1234");
 const soloLectura = { readOnlyHint: true, destructiveHint: false, openWorldHint: false } as const;
 
-function logUso(herramienta: string): void {
+function correoActual(): string | null {
 	const email = getMcpAuthContext()?.props?.email;
-	console.log(JSON.stringify({ evento: "herramienta", herramienta, correo: typeof email === "string" ? email : null }));
+	return typeof email === "string" ? email : null;
 }
 
-async function run(herramienta: string, fn: () => Promise<unknown>): Promise<ToolResult> {
-	logUso(herramienta);
+async function run(env: Env, herramienta: string, fn: () => Promise<unknown>): Promise<ToolResult> {
+	// Perfil por llamada (NVD-TK-41): en modo «activo» niega; en «sombra» solo registra.
+	const negado = await compuerta(env, correoActual(), herramienta);
+	if (negado) return { content: [{ type: "text", text: negado }], isError: true };
 	try {
 		return { content: [{ type: "text", text: JSON.stringify(await fn()) }] };
 	} catch (err) {
@@ -54,7 +58,7 @@ export function createServer(env: Env): McpServer {
 			inputSchema: { fecha: fecha.optional().describe("AAAA-MM-DD; por defecto hoy"), id_dentista: idDentista.optional() },
 			annotations: soloLectura,
 		},
-		async (a) => run("agenda_dia", () => T.agenda_dia(env, a)),
+		async (a) => run(env, "agenda_dia", () => T.agenda_dia(env, a)),
 	);
 
 	server.registerTool(
@@ -64,7 +68,7 @@ export function createServer(env: Env): McpServer {
 			inputSchema: { dias: dias(2).optional() },
 			annotations: soloLectura,
 		},
-		async (a) => run("confirmaciones_pendientes", () => T.confirmaciones_pendientes(env, a)),
+		async (a) => run(env, "confirmaciones_pendientes", () => T.confirmaciones_pendientes(env, a)),
 	);
 
 	server.registerTool(
@@ -75,7 +79,7 @@ export function createServer(env: Env): McpServer {
 			inputSchema: { dias: dias(3).optional(), id_dentista: idDentista.optional() },
 			annotations: soloLectura,
 		},
-		async (a) => run("citas_proximas", () => T.citas_proximas(env, a)),
+		async (a) => run(env, "citas_proximas", () => T.citas_proximas(env, a)),
 	);
 
 	server.registerTool(
@@ -85,7 +89,7 @@ export function createServer(env: Env): McpServer {
 			inputSchema: { texto: z.string().min(3).max(80) },
 			annotations: soloLectura,
 		},
-		async (a) => run("buscar_paciente", () => T.buscar_paciente(env, a)),
+		async (a) => run(env, "buscar_paciente", () => T.buscar_paciente(env, a)),
 	);
 
 	server.registerTool(
@@ -95,7 +99,7 @@ export function createServer(env: Env): McpServer {
 			inputSchema: { file },
 			annotations: soloLectura,
 		},
-		async (a) => run("citas_paciente", () => T.citas_paciente(env, a)),
+		async (a) => run(env, "citas_paciente", () => T.citas_paciente(env, a)),
 	);
 
 	server.registerTool(
@@ -109,7 +113,7 @@ export function createServer(env: Env): McpServer {
 			},
 			annotations: soloLectura,
 		},
-		async (a) => run("huecos", () => T.huecos(env, a)),
+		async (a) => run(env, "huecos", () => T.huecos(env, a)),
 	);
 
 	server.registerTool(
@@ -119,7 +123,7 @@ export function createServer(env: Env): McpServer {
 			inputSchema: {},
 			annotations: soloLectura,
 		},
-		async () => run("dentistas", () => T.dentistas(env)),
+		async () => run(env, "dentistas", () => T.dentistas(env)),
 	);
 
 	server.registerTool(
@@ -130,7 +134,7 @@ export function createServer(env: Env): McpServer {
 			inputSchema: { file },
 			annotations: soloLectura,
 		},
-		async (a) => run("laboratorio_paciente", () => T.laboratorio_paciente(env, a)),
+		async (a) => run(env, "laboratorio_paciente", () => T.laboratorio_paciente(env, a)),
 	);
 
 	server.registerTool(
@@ -140,7 +144,7 @@ export function createServer(env: Env): McpServer {
 			inputSchema: {},
 			annotations: soloLectura,
 		},
-		async () => run("laboratorios", () => T.laboratorios(env)),
+		async () => run(env, "laboratorios", () => T.laboratorios(env)),
 	);
 
 	return server;

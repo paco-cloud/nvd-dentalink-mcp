@@ -17,7 +17,8 @@ Ningún sistema existente depende de este Worker.
 | `src/allowlist.ts` | `ALLOWED_EMAILS`, segunda barrera tras la política de Access. Se revisa al entrar **y en cada llamada** |
 | `src/dentalink.ts` | Cliente **solo GET**: 1 consulta cada 1.1 s, reintento en 429, paginación solo dentro de la base |
 | `src/tools.ts` | Las 9 herramientas, portadas de `nvd-mcp.js`. Cada respuesta se arma campo por campo (lista blanca) |
-| `src/server.ts` | Registro MCP con validación de entradas (zod). Log: solo `{herramienta, correo}` |
+| `src/perfiles.ts` | **NVD-TK-41:** perfil por llamada desde `NVD · Catálogos › USUARIOS_ROLES` (Sheets, cuenta de servicio `GOOGLE_SA_JSON`, cache 5 min). Falla cerrado. `PERFILES_MODO`: `apagado` (reversa) · `sombra` (registra lo que negaría) · `activo` (niega) |
+| `src/server.ts` | Registro MCP con validación de entradas (zod). Log: solo `{herramienta, correo, perfil, modo, resultado, motivo}` |
 
 Rutas: `/mcp`, `/authorize`, `/callback`, `/token`, `/register` y `/.well-known/*`.
 
