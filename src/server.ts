@@ -43,7 +43,7 @@ async function run(env: Env, herramienta: string, fn: () => Promise<unknown>, fi
 		file: fileDe(file),
 		resultado: c.resultado as Resultado,
 		modo: c.modo,
-		motivo: c.motivo,
+		motivo: c.motivo as string | null,
 		quitado: [] as string[],
 	};
 	if (c.negado) {
@@ -74,6 +74,10 @@ async function run(env: Env, herramienta: string, fn: () => Promise<unknown>, fi
 						? err.message
 						: `Dentalink no respondió bien (${err.status}).`
 					: "Error al consultar Dentalink.";
+		// Tambien queda en la bitacora: quien intento que y por que fallo (sin cuerpo de Dentalink).
+		entrada.resultado = "error";
+		entrada.motivo = err instanceof T.UsoError ? "uso" : err instanceof DentalinkError ? `dentalink_${err.status}` : "error";
+		await registrar(env, entrada);
 		return { content: [{ type: "text", text: msg }], isError: true };
 	}
 }

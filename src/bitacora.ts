@@ -3,7 +3,8 @@
  *
  * Cada llamada a una herramienta deja una entrada en el KV BITACORA (90 dias) con:
  * fecha y hora, correo, perfil, herramienta, File consultado (si aplica), resultado
- * (permitido, negado, filtrado, negaria, filtraria o sin_filtro), modo y motivo.
+ * (permitido, negado, filtrado, negaria, filtraria, sin_filtro o error), modo y motivo.
+ * En un error, el motivo es solo el tipo y el status (p. ej. «dentalink_500»), nunca el cuerpo.
  * Nunca nombres, celulares, montos, texto clinico ni argumentos de busqueda.
  *
  * Una vez al dia (cron) las entradas del dia anterior se agregan a
@@ -13,7 +14,7 @@
  */
 import { hoyMx } from "./tools.ts";
 
-export type Resultado = "permitido" | "negado" | "filtrado" | "negaria" | "filtraria" | "sin_filtro";
+export type Resultado = "permitido" | "negado" | "filtrado" | "negaria" | "filtraria" | "sin_filtro" | "error";
 
 export type Entrada = {
 	fecha_hora_mx: string;

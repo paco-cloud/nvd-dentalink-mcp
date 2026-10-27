@@ -7,7 +7,7 @@ interface __BaseEnv_Env {
 	ALLOWED_EMAILS: "andres@novodent.mx,maitte@novodent.mx,jared@novodent.mx,paco@novodent.mx,melanie.molina@novodent.mx,reyes@novodent.mx,sebastian@novodent.mx,myna.enriquez@novodent.mx,jocelyn@novodent.mx,wendolin@novodent.mx,brenda@novodent.mx,prueba.conector@novodent.mx";
 	DENTALINK_BASE_URL: "https://api.dentalink.healthatom.com/api/v1";
 	PERFILES_SHEET_ID: "1kn0sNs-M_qR-n_0XwWAYOZeCyYyanY5o1EcXcxdMPKM";
-	PERFILES_MODO: "sombra";
+	PERFILES_MODO: "activo";
 	BITACORA_SHEET_ID: "1_JRuI1ETl8TO5qqtUoHoXzAwmihVsIyDoFT06PsOQtE";
 	DENTALINK_TOKEN: string;
 	GOOGLE_SA_JSON: string;
