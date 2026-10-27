@@ -6,7 +6,7 @@ import * as T from "../src/tools.ts";
 ritmo.intervaloMs = 0;
 ritmo.espera429Ms = 0;
 
-const env = { DENTALINK_BASE_URL: "https://dl.example/api/v1", DENTALINK_TOKEN: "t" } as unknown as Env;
+const env = { DENTALINK_BASE_URL: "https://dl.example/api/v1", LLAVE_DENTALINK: "t" } as unknown as Env;
 
 // Campos que nunca deben salir, aunque Dentalink los mande.
 const PROHIBIDOS = ["comentarios", "comentario", "diagnostico", "evolucion", "monto", "precio", "celular", "email", "rut"];

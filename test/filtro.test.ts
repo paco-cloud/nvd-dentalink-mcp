@@ -9,7 +9,7 @@ import { ritmo } from "../src/dentalink.ts";
 import { PERFILES, type NombrePerfil, type Perfil } from "../src/perfil-tipos.ts";
 
 ritmo.intervaloMs = 0;
-const env = { DENTALINK_BASE_URL: "https://dl.example/api/v1", DENTALINK_TOKEN: "t" } as unknown as Env;
+const env = { DENTALINK_BASE_URL: "https://dl.example/api/v1", LLAVE_DENTALINK: "t" } as unknown as Env;
 const p = (perfil: NombrePerfil): Perfil => ({ correo: "prueba@novodent.mx", perfil, registra_pagos: false, anula: false, escribe_evoluciones: false });
 
 const DENTISTAS = [

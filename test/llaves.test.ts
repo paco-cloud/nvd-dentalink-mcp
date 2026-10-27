@@ -18,17 +18,29 @@ const AGENDA = ["agenda_dia", "citas_proximas", "confirmaciones_pendientes", "hu
 const CLINICO = ["laboratorio_paciente", "laboratorios", "crear_evolucion"];
 
 test("cada herramienta usa la llave de su dominio", () => {
-	for (const h of AGENDA) assert.deepEqual(llaveDe(env(TODAS), h), { dominio: "agenda", origen: "dominio", token: "llave-agenda" }, h);
-	for (const h of CLINICO) assert.deepEqual(llaveDe(env(TODAS), h), { dominio: "clinico", origen: "dominio", token: "llave-clinico" }, h);
-	assert.deepEqual(llaveDe(env(TODAS), "registrar_pago"), { dominio: "pagos", origen: "dominio", token: "llave-pagos" });
+	for (const h of AGENDA) assert.deepEqual(llaveDe(env(TODAS), h), { dominio: "agenda", token: "llave-agenda" }, h);
+	for (const h of CLINICO) assert.deepEqual(llaveDe(env(TODAS), h), { dominio: "clinico", token: "llave-clinico" }, h);
+	assert.deepEqual(llaveDe(env(TODAS), "registrar_pago"), { dominio: "pagos", token: "llave-pagos" });
 	// Todas las herramientas de la matriz tienen dominio.
 	assert.deepEqual(Object.keys(matriz.herramientas).sort(), [...AGENDA, ...CLINICO, "registrar_pago"].sort());
 });
 
-test("transición: sin la llave del dominio usa nvdasistentes mientras exista", () => {
+test("retiro de nvdasistentes: DENTALINK_TOKEN ya no sirve de respaldo", () => {
 	const e = env({ DENTALINK_TOKEN: "llave-vieja", DENTALINK_TOKEN_AGENDA: "llave-agenda" });
-	assert.deepEqual(llaveDe(e, "agenda_dia"), { dominio: "agenda", origen: "dominio", token: "llave-agenda" });
-	assert.deepEqual(llaveDe(e, "laboratorios"), { dominio: "clinico", origen: "respaldo", token: "llave-vieja" });
+	assert.deepEqual(llaveDe(e, "agenda_dia"), { dominio: "agenda", token: "llave-agenda" });
+	assert.throws(() => llaveDe(e, "laboratorios"), LlaveNoDisponible);
+});
+
+test("dentalink.ts no consulta sin la llave del dominio, aunque exista la vieja", async () => {
+	const f = globalThis.fetch;
+	let llamadas = 0;
+	globalThis.fetch = (async () => (llamadas++, new Response("{}"))) as typeof fetch;
+	try {
+		await assert.rejects(T.dentistas(env({ DENTALINK_TOKEN: "llave-vieja" })), LlaveNoDisponible);
+	} finally {
+		globalThis.fetch = f;
+	}
+	assert.equal(llamadas, 0);
 });
 
 test("falla cerrado: sin llave del dominio ni respaldo, o herramienta desconocida, se niega", () => {

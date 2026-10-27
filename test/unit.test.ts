@@ -12,7 +12,7 @@ import { verifyIdToken } from "../src/access-jwt.ts";
 const env = {
 	ALLOWED_EMAILS: "andres@novodent.mx, Maitte@novodent.mx",
 	DENTALINK_BASE_URL: "https://dl.example/api/v1",
-	DENTALINK_TOKEN: "t",
+	LLAVE_DENTALINK: "t",
 	ACCESS_CLIENT_ID: "cid",
 	ACCESS_TOKEN_URL: "https://team.cloudflareaccess.com/cdn-cgi/access/sso/oidc/cid/token",
 	ACCESS_JWKS_URL: "https://team.cloudflareaccess.com/cdn-cgi/access/sso/oidc/cid/jwks",
