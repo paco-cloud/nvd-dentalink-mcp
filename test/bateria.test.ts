@@ -20,7 +20,7 @@ const sa = {
 	private_key: generateKeyPairSync("rsa", { modulusLength: 2048 }).privateKey.export({ type: "pkcs8", format: "pem" }) as string,
 	token_uri: "https://oauth2.example/token",
 };
-const env = { GOOGLE_SA_JSON: JSON.stringify(sa), PERFILES_SHEET_ID: "hoja", PERFILES_MODO: "activo", DENTALINK_BASE_URL: "https://dl.example/api/v1", DENTALINK_TOKEN: "t" } as unknown as Env;
+const env = { GOOGLE_SA_JSON: JSON.stringify(sa), PERFILES_SHEET_ID: "hoja", PERFILES_MODO: "activo", DENTALINK_BASE_URL: "https://dl.example/api/v1", LLAVE_DENTALINK: "t" } as unknown as Env;
 
 // Una cuenta de prueba por perfil, como las de la fase 5.
 const fila = (correo: string, perfil: string, pagos = "FALSE", activo = "TRUE") => [correo, "", "", "", pagos, "FALSE", "FALSE", activo, "", "", perfil, ""];

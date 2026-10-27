@@ -54,7 +54,7 @@ async function run(env: Env, herramienta: string, fn: (env: Env) => Promise<unkn
 	try {
 		// Llave de Dentalink del dominio de la herramienta (fase 6). Solo se registra el dominio.
 		const llave = llaveDe(env, herramienta);
-		console.log(JSON.stringify({ evento: "llave", herramienta, dominio: llave.dominio, origen: llave.origen }));
+		console.log(JSON.stringify({ evento: "llave", herramienta, dominio: llave.dominio }));
 		const e = conLlave(env, llave);
 		let r = await fn(e);
 		// Filtro por campo y por fila (fase 3): en sombra solo se registra; en activo se aplica.

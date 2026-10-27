@@ -6,11 +6,10 @@
  *   clinico → DENTALINK_TOKEN_CLINICO (nvdclinico: tratamientos, evoluciones, recetas)
  *   pagos   → DENTALINK_TOKEN_PAGOS   (nvdpagos)
  *
- * Transicion sin detener la operacion: si la llave del dominio todavia no esta
- * cargada, se usa DENTALINK_TOKEN (nvdasistentes) mientras exista. Cuando Paco borra
- * ese secreto, una herramienta sin llave de su dominio se niega (falla cerrado).
+ * nvdasistentes (DENTALINK_TOKEN) se retiro: ya no hay llave de respaldo. Una
+ * herramienta sin la llave de su dominio se niega (falla cerrado, motivo sin_llave).
  *
- * Nunca se registra el valor de una llave: solo el dominio y si fue la de respaldo.
+ * Nunca se registra el valor de una llave: solo el dominio.
  */
 import { matriz, type Dominio, type Matriz } from "./matriz.ts";
 
@@ -26,7 +25,7 @@ const SECRETO: Record<Dominio, "DENTALINK_TOKEN_AGENDA" | "DENTALINK_TOKEN_CLINI
 	pagos: "DENTALINK_TOKEN_PAGOS",
 };
 
-export type Llave = { dominio: Dominio; origen: "dominio" | "respaldo"; token: string };
+export type Llave = { dominio: Dominio; token: string };
 
 const valor = (v: unknown): string | null => (typeof v === "string" && v.trim() ? v : null);
 
@@ -36,13 +35,13 @@ export function llaveDe(env: Env, herramienta: string, m: Matriz = matriz): Llav
 	const dominio = grupo ? m.llaves[grupo] : undefined;
 	if (!dominio) throw new LlaveNoDisponible();
 	const propia = valor((env as unknown as Record<string, unknown>)[SECRETO[dominio]]);
-	if (propia) return { dominio, origen: "dominio", token: propia };
-	const respaldo = valor(env.DENTALINK_TOKEN);
-	if (respaldo) return { dominio, origen: "respaldo", token: respaldo };
-	throw new LlaveNoDisponible();
+	if (!propia) throw new LlaveNoDisponible();
+	return { dominio, token: propia };
 }
 
-/** Copia de env donde DENTALINK_TOKEN es la llave del dominio; dentalink.ts no cambia. */
-export function conLlave(env: Env, llave: Llave): Env {
-	return { ...env, DENTALINK_TOKEN: llave.token } as Env;
+/** Env con la llave del dominio ya elegida: es lo unico que dentalink.ts acepta. */
+export type EnvConLlave = Env & { readonly LLAVE_DENTALINK: string };
+
+export function conLlave(env: Env, llave: Llave): EnvConLlave {
+	return { ...env, LLAVE_DENTALINK: llave.token };
 }

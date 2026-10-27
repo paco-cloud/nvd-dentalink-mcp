@@ -6,6 +6,8 @@
  * espera creciente cuando Dentalink responde 429.
  */
 
+import { LlaveNoDisponible, type EnvConLlave } from "./llaves.ts";
+
 export type Row = Record<string, any>;
 
 export class DentalinkError extends Error {
@@ -48,9 +50,12 @@ async function getJson(env: Env, url: URL): Promise<any> {
 		const espera = ultima + ritmo.intervaloMs - Date.now();
 		if (espera > 0) await dormir(espera);
 		ultima = Date.now();
+		// La llave la pone llaves.ts segun el dominio de la herramienta. Sin llave, no se consulta.
+		const llave = (env as Partial<EnvConLlave>).LLAVE_DENTALINK;
+		if (!llave) throw new LlaveNoDisponible();
 		const res = await fetch(url, {
 			method: "GET",
-			headers: { Authorization: `Token ${env.DENTALINK_TOKEN}`, Accept: "application/json" },
+			headers: { Authorization: `Token ${llave}`, Accept: "application/json" },
 		});
 		if (res.status === 429) {
 			await dormir(ritmo.espera429Ms * (i + 1));
