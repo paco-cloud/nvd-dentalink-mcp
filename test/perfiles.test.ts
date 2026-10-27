@@ -97,18 +97,18 @@ test("activo: correo sin fila, inactivo, «Por confirmar» o sin correo → nega
 	const s = simular(hojaOk);
 	try {
 		const e = env("activo");
-		assert.equal(await P.compuerta(e, "ana@novodent.mx", "agenda_dia"), null);
-		assert.equal(await P.compuerta(e, "ANA@novodent.mx", "agenda_dia"), null);
-		assert.match((await P.compuerta(e, "nadie@novodent.mx", "agenda_dia")) ?? "", /Sin permiso/);
-		assert.match((await P.compuerta(e, "eli@novodent.mx", "agenda_dia")) ?? "", /Sin permiso/);
-		assert.match((await P.compuerta(e, "dani@novodent.mx", "agenda_dia")) ?? "", /Sin permiso/);
+		assert.equal((await P.compuerta(e, "ana@novodent.mx", "agenda_dia")).negado, null);
+		assert.equal((await P.compuerta(e, "ANA@novodent.mx", "agenda_dia")).negado, null);
+		assert.match(((await P.compuerta(e, "nadie@novodent.mx", "agenda_dia")).negado) ?? "", /Sin permiso/);
+		assert.match(((await P.compuerta(e, "eli@novodent.mx", "agenda_dia")).negado) ?? "", /Sin permiso/);
+		assert.match(((await P.compuerta(e, "dani@novodent.mx", "agenda_dia")).negado) ?? "", /Sin permiso/);
 		// Con perfil valido pero sin el grupo (matriz, fase 2) tambien se niega.
-		assert.match((await P.compuerta(e, "ana@novodent.mx", "crear_evolucion")) ?? "", /tu perfil no puede/);
-		assert.match((await P.compuerta(e, "cris@novodent.mx", "registrar_pago")) ?? "", /tu perfil no puede/);
-		assert.equal(await P.compuerta(e, "cris@novodent.mx", "crear_evolucion"), null);
-		assert.equal(await P.compuerta(e, "beto@novodent.mx", "registrar_pago"), null); // tiene la bandera
-		assert.match((await P.compuerta(e, "ana@novodent.mx", "registrar_pago")) ?? "", /tu perfil puede, pero/); // sin bandera
-		assert.match((await P.compuerta(e, null, "agenda_dia")) ?? "", /Sin permiso/);
+		assert.match(((await P.compuerta(e, "ana@novodent.mx", "crear_evolucion")).negado) ?? "", /tu perfil no puede/);
+		assert.match(((await P.compuerta(e, "cris@novodent.mx", "registrar_pago")).negado) ?? "", /tu perfil no puede/);
+		assert.equal((await P.compuerta(e, "cris@novodent.mx", "crear_evolucion")).negado, null);
+		assert.equal((await P.compuerta(e, "beto@novodent.mx", "registrar_pago")).negado, null); // tiene la bandera
+		assert.match(((await P.compuerta(e, "ana@novodent.mx", "registrar_pago")).negado) ?? "", /tu perfil puede, pero/); // sin bandera
+		assert.match(((await P.compuerta(e, null, "agenda_dia")).negado) ?? "", /Sin permiso/);
 		// La hoja se leyo una sola vez (cache de 5 min): un token y una lectura.
 		assert.equal(s.llamadas.length, 2);
 		const ultimo = JSON.parse(s.logs.at(-1)!);
@@ -124,7 +124,7 @@ test("activo: correo sin fila, inactivo, «Por confirmar» o sin correo → nega
 test("activo: hoja caida → «perfil no disponible», aunque el correo exista", async () => {
 	const s = simular(() => new Response("error", { status: 500 }));
 	try {
-		const r = await P.compuerta(env("activo"), "ana@novodent.mx", "agenda_dia");
+		const r = (await P.compuerta(env("activo"), "ana@novodent.mx", "agenda_dia")).negado;
 		assert.match(r ?? "", /Perfil no disponible/);
 		assert.ok(s.logs.some((l) => l.includes('"no_disponible"')));
 	} finally {
@@ -137,7 +137,7 @@ test("activo: Google rechaza el token → negar", async () => {
 	try {
 		const e = env("activo");
 		(e as any).GOOGLE_SA_JSON = JSON.stringify({ ...sa, private_key: generateKeyPairSync("rsa", { modulusLength: 2048 }).privateKey.export({ type: "pkcs8", format: "pem" }) });
-		assert.match((await P.compuerta(e, "ana@novodent.mx", "agenda_dia")) ?? "", /Perfil no disponible/);
+		assert.match(((await P.compuerta(e, "ana@novodent.mx", "agenda_dia")).negado) ?? "", /Perfil no disponible/);
 	} finally {
 		s.restaurar();
 	}
@@ -146,13 +146,13 @@ test("activo: Google rechaza el token → negar", async () => {
 test("sombra: registra lo que negaria (sin fila o por la matriz) pero deja pasar", async () => {
 	const s = simular(hojaOk);
 	try {
-		assert.equal(await P.compuerta(env("sombra"), "nadie@novodent.mx", "huecos"), null);
+		assert.equal((await P.compuerta(env("sombra"), "nadie@novodent.mx", "huecos")).negado, null);
 		let l = JSON.parse(s.logs.at(-1)!);
 		assert.equal(l.resultado, "negaria");
 		assert.equal(l.motivo, "sin_fila");
 		assert.equal(l.modo, "sombra");
 		// Jefatura administrativa sin la bandera registra_pagos: la matriz la negaria.
-		assert.equal(await P.compuerta(env("sombra"), "beto@novodent.mx", "crear_evolucion"), null);
+		assert.equal((await P.compuerta(env("sombra"), "beto@novodent.mx", "crear_evolucion")).negado, null);
 		l = JSON.parse(s.logs.at(-1)!);
 		assert.deepEqual([l.resultado, l.motivo, l.perfil], ["negaria", "perfil_sin_grupo", "Jefatura administrativa"]);
 	} finally {
@@ -163,7 +163,7 @@ test("sombra: registra lo que negaria (sin fila o por la matriz) pero deja pasar
 test("apagado: no lee la hoja y deja pasar", async () => {
 	const s = simular(hojaOk);
 	try {
-		assert.equal(await P.compuerta(env("apagado"), "nadie@novodent.mx", "huecos"), null);
+		assert.equal((await P.compuerta(env("apagado"), "nadie@novodent.mx", "huecos")).negado, null);
 		assert.equal(s.llamadas.length, 0);
 		assert.equal(JSON.parse(s.logs.at(-1)!).resultado, "sin_filtro");
 	} finally {
@@ -176,8 +176,8 @@ test("la cache vence a los 5 minutos y nada secreto va al log", async () => {
 	const ttl = P.cache.ttlMs;
 	try {
 		P.cache.ttlMs = 0;
-		await P.compuerta(env("activo"), "ana@novodent.mx", "agenda_dia");
-		await P.compuerta(env("activo"), "ana@novodent.mx", "agenda_dia");
+		(await P.compuerta(env("activo"), "ana@novodent.mx", "agenda_dia")).negado;
+		(await P.compuerta(env("activo"), "ana@novodent.mx", "agenda_dia")).negado;
 		assert.equal(s.llamadas.filter((u) => u.includes("sheets.googleapis.com")).length, 2);
 		assert.equal(s.llamadas.filter((u) => u === sa.token_uri).length, 1); // el token si se reutiliza
 		const todo = s.logs.join("\n");

@@ -15,6 +15,10 @@ export type Matriz = {
 	grupos: Record<string, string>;
 	herramientas: Record<string, { grupo: string; bandera?: Bandera }>;
 	perfiles: Record<NombrePerfil, string[]>;
+	/** Fase 3: herramienta → campo → grupo que exige. */
+	campos: Record<string, Record<string, string>>;
+	/** Fase 3: perfil → filtros por fila. */
+	restricciones: Partial<Record<NombrePerfil, { agenda_especialidades?: string[] }>>;
 };
 
 const BANDERAS: readonly Bandera[] = ["registra_pagos", "anula", "escribe_evoluciones"];
@@ -33,6 +37,17 @@ export function validar(m: unknown): Matriz {
 		for (const g of grupos) if (!(g in x.grupos)) throw new Error(`matriz.json: ${p} usa un grupo desconocido`);
 	}
 	for (const p of Object.keys(x.perfiles)) if (!(PERFILES as readonly string[]).includes(p)) throw new Error(`matriz.json: perfil desconocido ${p}`);
+	const sinNotas = (o: object) => Object.entries(o).filter(([k]) => !k.startsWith("_"));
+	x.campos = Object.fromEntries(sinNotas(x.campos ?? {})) as Matriz["campos"];
+	for (const [h, campos] of Object.entries(x.campos)) {
+		if (!(h in x.herramientas)) throw new Error(`matriz.json: campos de una herramienta desconocida (${h})`);
+		for (const [c, g] of Object.entries(campos)) if (!(g in x.grupos)) throw new Error(`matriz.json: el campo ${c} de ${h} exige un grupo desconocido`);
+	}
+	x.restricciones = Object.fromEntries(sinNotas(x.restricciones ?? {})) as Matriz["restricciones"];
+	for (const [p, r] of Object.entries(x.restricciones)) {
+		if (!(PERFILES as readonly string[]).includes(p)) throw new Error(`matriz.json: restriccion de un perfil desconocido (${p})`);
+		if (r?.agenda_especialidades !== undefined && (!Array.isArray(r.agenda_especialidades) || r.agenda_especialidades.length === 0)) throw new Error(`matriz.json: agenda_especialidades de ${p} vacia`);
+	}
 	return x;
 }
 

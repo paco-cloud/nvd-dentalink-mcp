@@ -2,7 +2,8 @@ import { McpServer } from "@modelcontextprotocol/server";
 import { getMcpAuthContext } from "agents/mcp/server";
 import { z } from "zod";
 import { DentalinkError } from "./dentalink.ts";
-import { compuerta } from "./perfiles.ts";
+import { filtrar } from "./filtro.ts";
+import { compuerta, logFiltro } from "./perfiles.ts";
 import * as T from "./tools.ts";
 
 /**
@@ -30,10 +31,18 @@ function correoActual(): string | null {
 
 async function run(env: Env, herramienta: string, fn: () => Promise<unknown>): Promise<ToolResult> {
 	// Perfil por llamada (NVD-TK-41): en modo «activo» niega; en «sombra» solo registra.
-	const negado = await compuerta(env, correoActual(), herramienta);
-	if (negado) return { content: [{ type: "text", text: negado }], isError: true };
+	const correo = correoActual();
+	const c = await compuerta(env, correo, herramienta);
+	if (c.negado) return { content: [{ type: "text", text: c.negado }], isError: true };
 	try {
-		return { content: [{ type: "text", text: JSON.stringify(await fn()) }] };
+		let r = await fn();
+		// Filtro por campo y por fila (fase 3): en sombra solo se registra; en activo se aplica.
+		if (c.perfil) {
+			const f = await filtrar(env, c.perfil, herramienta, c.modo === "activo" ? r : structuredClone(r));
+			logFiltro(herramienta, correo, c.perfil, c.modo, f.quitado);
+			if (c.modo === "activo") r = f.resultado;
+		}
+		return { content: [{ type: "text", text: JSON.stringify(r) }] };
 	} catch (err) {
 		// Sin detalle de la respuesta de Dentalink: puede traer datos.
 		const msg =

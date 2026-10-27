@@ -163,12 +163,15 @@ export const MENSAJE: Record<Motivo, string> = {
 	sin_bandera: "Sin permiso: tu perfil puede, pero a tu cuenta le falta la autorización en USUARIOS_ROLES.",
 };
 
+export type Compuerta = { negado: string | null; perfil: Perfil | null; modo: Modo };
+
 /**
- * Compuerta de cada llamada. Devuelve el mensaje de negacion (y la llamada no
- * sigue) o null. Registra {herramienta, correo, perfil, modo, resultado, motivo}:
- * nunca argumentos, nombres ni respuestas.
+ * Compuerta de cada llamada. `negado` es el mensaje de negacion (y la llamada no
+ * sigue) o null; `perfil` sirve para el filtro por campo (fase 3) en sombra o activo.
+ * Registra {herramienta, correo, perfil, grupo, modo, resultado, motivo}: nunca
+ * argumentos, nombres ni respuestas.
  */
-export async function compuerta(env: Env, correo: string | null, herramienta: string): Promise<string | null> {
+export async function compuerta(env: Env, correo: string | null, herramienta: string): Promise<Compuerta> {
 	const m = modo(env);
 	const d = m === "apagado" ? null : await decidir(env, correo, herramienta);
 	const resultado = !d ? "sin_filtro" : d.permitido ? "permitido" : m === "activo" ? "negado" : "negaria";
@@ -184,5 +187,10 @@ export async function compuerta(env: Env, correo: string | null, herramienta: st
 			motivo: d && !d.permitido ? d.motivo : null,
 		}),
 	);
-	return d && !d.permitido && m === "activo" ? MENSAJE[d.motivo] : null;
+	return { negado: d && !d.permitido && m === "activo" ? MENSAJE[d.motivo] : null, perfil: d?.perfil ?? null, modo: m };
+}
+
+/** Log del filtro por campo (fase 3): solo nombres de campos y conteos. */
+export function logFiltro(herramienta: string, correo: string | null, perfil: Perfil, m: Modo, quitado: string[]): void {
+	if (quitado.length) console.log(JSON.stringify({ evento: "filtro", herramienta, correo, perfil: perfil.perfil, modo: m, resultado: m === "activo" ? "filtrado" : "filtraria", quitado }));
 }

@@ -68,7 +68,7 @@ test(
 			assert.equal(r.total, 2);
 			assert.deepEqual(r.citas.map((c) => c.id_cita), [1, 2]);
 			assert.deepEqual(r.citas[0], {
-				fecha: hoy, hora: "10:30", duracion: 30, profesional: "Dra. Wendy", consultorio: "Sillón 1",
+				fecha: hoy, hora: "10:30", duracion: 30, profesional: "Dra. Wendy", id_profesional: 5, consultorio: "Sillón 1",
 				estado: "Confirmada", paciente: "Ana López", file: "F-77", id_cita: 1,
 			});
 			sinProhibidos(r);
@@ -180,12 +180,12 @@ test(
 		{
 			"agendas/": (u) => {
 				assert.deepEqual(JSON.parse(u.searchParams.get("q")!), { id_sucursal: 1, fecha: T.hoyMx(1), duracion: 30 });
-				return { data: [{ fecha: T.hoyMx(1), hora_inicio: "09:00", nombre_dentista: "Dra. Wendy", id_recurso: 2, precio: 1 }] };
+				return { data: [{ fecha: T.hoyMx(1), hora_inicio: "09:00", nombre_dentista: "Dra. Wendy", id_dentista: 5, id_recurso: 2, precio: 1 }] };
 			},
 		},
 		async () => {
 			const r = await T.huecos(env, {});
-			assert.deepEqual(r.huecos, [{ fecha: T.hoyMx(1), hora: "09:00", profesional: "Dra. Wendy", consultorio: 2 }]);
+			assert.deepEqual(r.huecos, [{ fecha: T.hoyMx(1), hora: "09:00", profesional: "Dra. Wendy", id_profesional: 5, consultorio: 2 }]);
 		},
 	),
 );
