@@ -1,54 +1,60 @@
-# NVD-TK-41 · Fase 5 · Batería en vivo con cuentas de prueba
+# NVD-TK-41 · Fase 5 · Batería en vivo
 
-La misma batería ya corre en automático (`test/bateria.test.ts`, modo activo, Sheets y
-Dentalink simulados). Esta guía es la corrida **en vivo**, contra el conector desplegado,
-para la evidencia que pide Mel antes de pasar a modo activo.
+La batería ya corre en automático (`test/bateria.test.ts`, modo activo, Sheets y Dentalink
+simulados). Esta guía es la corrida **en vivo** contra el conector desplegado, para la
+evidencia que pide Mel antes de pasar a modo activo.
 
-## Antes de empezar (Paco)
+## Una sola cuenta de prueba
 
-1. Cuentas de prueba en Google Admin, una por perfil:
-   `prueba.auxclinico@`, `prueba.ac@`, `prueba.lab@`, `prueba.doctor@`, `prueba.direccion@`,
-   `prueba.jefatura@`, `prueba.porconfirmar@` (todas @novodent.mx).
-2. Cada una con su fila en `NVD · Catálogos › USUARIOS_ROLES` (perfil y `activo = TRUE`;
-   `prueba.jefatura@` con `puede_registrar_pagos = TRUE`). Para el caso 8 se usa una
-   cuenta **sin fila**: `prueba.sinfila@`.
-3. Las 8 cuentas en la política de Access «Equipo autorizado · Conector Dentalink» y en
-   `ALLOWED_EMAILS` (`wrangler.jsonc`), con deploy.
-4. `PERFILES_MODO=activo` **sólo durante la prueba** (variable del panel o deploy). Al
-   terminar, volver a `sombra` hasta el OK de Mel.
-5. Pacientes: sólo Files de prueba (F-9001 a F-9099). Nunca un paciente real.
+En vez de una cuenta por perfil (8 licencias de Google y 8 asientos de Claude) se usa
+**una** cuenta, `prueba.conector@novodent.mx`, y se le cambia el perfil en
+`USUARIOS_ROLES` entre caso y caso. La prueba se hace con **MCP Inspector**, que llama a
+las herramientas directo y muestra la respuesta cruda: no necesita asiento de Claude y la
+evidencia no depende de lo que interprete un asistente.
 
-## Cómo correr cada caso
+- El perfil se lee de la hoja con cache de **5 minutos por isolate**: después de cambiar la
+  fila hay que esperar 5 minutos antes del siguiente caso.
+- `prueba.conector@` ya está en `ALLOWED_EMAILS` (`wrangler.jsonc`). Fuera de la prueba su
+  fila queda con `activo = FALSE`, así que el filtro la niega aunque entre.
+- Pacientes: sólo Files de prueba (F-9001 a F-9099) o búsquedas sin resultados. Nunca un
+  paciente real en la evidencia.
 
-Con la cuenta de prueba, en Claude con el conector «Novodent · Dentalink» conectado,
-escribir la petición literal. Anotar lo que responde el conector (no lo que interpreta el
-asistente) y la fila que aparece en `BITACORA_CONSULTAS` al día siguiente (o en el log de
-Workers al momento: `evento: "herramienta"`).
+## Preparación
 
-| # | Cuenta | Petición | Debe | Resultado | Bitácora |
-|---:|---|---|---|---|---|
-| 1 | prueba.auxclinico@ | «Registra un pago de F-9001» | Negar · `perfil_sin_grupo` | | |
-| 2 | prueba.auxclinico@ | «Busca al paciente Prueba» | Responde sin `celular_termina_en` · `filtrado` | | |
-| 3 | prueba.ac@ | «Registra una evolución para F-9001» | Negar · `perfil_sin_grupo` | | |
-| 4 | prueba.ac@ | «Busca al paciente Prueba» | Responde con 4 dígitos del celular · `permitido` | | |
-| 5 | prueba.lab@ | «Agenda de hoy» | Sólo prótesis, ortodoncia y cirugía · `filtrado` | | |
-| 6 | prueba.lab@ | «Registra un pago de F-9001» | Negar | | |
-| 7 | prueba.porconfirmar@ | «Agenda de hoy» | Negar · `sin_fila` | | |
-| 8 | prueba.sinfila@ | «Agenda de hoy» | Negar · `sin_fila` | | |
-| 9 | prueba.doctor@ | «Registra un pago de F-9001» | Negar | | |
-| 10 | prueba.direccion@ | Las 9 herramientas | Todas pasan; celular enmascarado | | |
-| 11 | cualquiera | Con `PERFILES_SHEET_ID` apuntando a una hoja sin permiso | «Perfil no disponible» · `no_disponible` | | |
-| 12 | prueba.jefatura@ | «Registra un pago de F-9001» | Pasa la compuerta (la herramienta aún no existe: «herramienta no registrada») | | |
+1. Cuenta `prueba.conector@novodent.mx` en Google Admin (Paco).
+2. La cuenta en la política de Access «Equipo autorizado · Conector Dentalink» (Paco).
+3. Fila en `USUARIOS_ROLES`: correo, `activo = TRUE`, perfil del primer caso.
+4. `PERFILES_MODO = activo` **sólo durante la prueba**, editando la variable en el panel del
+   Worker. El siguiente deploy desde el repo la regresa a `sombra`.
+5. Inspector en la terminal de Paco:
+   ```bash
+   npx @modelcontextprotocol/inspector@latest
+   ```
+   Transporte «Streamable HTTP», URL `https://nvd-dentalink-mcp.novomedia.workers.dev/mcp`,
+   «Connect», y entrar con `prueba.conector@` en Access.
 
-**Hoy no existen herramientas de pagos ni de evoluciones.** Los casos 1, 3, 6, 9 y 12 sólo
-se pueden comprobar en vivo cuando existan; mientras tanto los cubre la prueba automática
-contra la matriz. Lo que sí se comprueba en vivo hoy: 2, 4, 5, 7, 8, 10 y 11.
+## Casos
 
-## Criterio de salida
+| # | Perfil en la fila | Herramienta (Inspector) | Argumentos | Debe | Resultado | Log |
+|---:|---|---|---|---|---|---|
+| 10 | Dirección | las 9 | por defecto | Todas pasan; `buscar_paciente` con 4 dígitos | | |
+| 4 | Atención a Clientes | buscar_paciente | `{"texto":"Prueba"}` | Con `celular_termina_en` · `permitido` | | |
+| 2 | Auxiliar clínico | buscar_paciente | `{"texto":"Prueba"}` | Sin `celular_termina_en` · `filtrado` | | |
+| 5 | Laboratorio | agenda_dia | `{}` | Sólo prótesis, ortodoncia y cirugía · `filtrado` | | |
+| 5b | Laboratorio | dentistas | `{}` | Sólo esas especialidades | | |
+| 7 | Por confirmar | agenda_dia | `{}` | «Sin permiso» · `sin_fila` | | |
+| 8 | (fila con `activo = FALSE`) | agenda_dia | `{}` | «Sin permiso» · `sin_fila` | | |
+| 11 | Dirección + hoja sin permiso | agenda_dia | `{}` | «Perfil no disponible» · `no_disponible` | | |
+
+El caso 11 se prueba quitando a la cuenta de servicio de la hoja **sólo si Paco lo
+aprueba**; si no, queda cubierto por la prueba automática.
+
+Los casos 1, 3, 6, 9 y 12 necesitan herramientas de pagos o de evoluciones, que hoy no
+existen: los cubre la prueba automática contra la matriz.
+
+## Criterio de salida y cierre
 
 - 100 % de los casos negados donde debe negarse y 0 respuestas con datos que el perfil no
-  puede ver.
-- Cada caso con su fila en la bitácora.
-- Al terminar: `PERFILES_MODO=sombra`, quitar las cuentas de prueba de Access y de
-  `ALLOWED_EMAILS` (o dejarlas inactivas en `USUARIOS_ROLES`), y reporte
-  `NVD-DEV-RPT-2026-10-XX-tk41.md` con esta tabla llena.
+  puede ver. Cada caso con su línea en el log de Workers (`evento: "herramienta"`).
+- Al terminar: `PERFILES_MODO = sombra` en el panel, fila de `prueba.conector@` con
+  `activo = FALSE`, y reporte `NVD-DEV-RPT-2026-10-XX-tk41.md` con esta tabla llena.

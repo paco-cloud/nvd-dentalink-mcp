@@ -31,9 +31,11 @@
 		// Segunda barrera despues de la politica de Access: se revisa en el inicio de
 		// sesion Y en cada llamada, asi que quitar un correo aqui corta el acceso al
 		// siguiente deploy aunque la persona tenga un token vigente.
-		// Igual que la politica de Access y que el panel al 27-oct-2026 (11 correos). Si se
-		// edita en el panel, el siguiente deploy lo sobrescribe con este valor.
-		"ALLOWED_EMAILS": "andres@novodent.mx,maitte@novodent.mx,jared@novodent.mx,paco@novodent.mx,melanie.molina@novodent.mx,reyes@novodent.mx,sebastian@novodent.mx,myna.enriquez@novodent.mx,jocelyn@novodent.mx,wendolin@novodent.mx,brenda@novodent.mx",
+		// Igual que la politica de Access y que el panel al 27-oct-2026 (11 correos), mas
+		// prueba.conector@ para la bateria de NVD-TK-41 fase 5 (sin fila activa en
+		// USUARIOS_ROLES fuera de la prueba, asi que el filtro la niega). Si se edita en el
+		// panel, el siguiente deploy lo sobrescribe con este valor.
+		"ALLOWED_EMAILS": "andres@novodent.mx,maitte@novodent.mx,jared@novodent.mx,paco@novodent.mx,melanie.molina@novodent.mx,reyes@novodent.mx,sebastian@novodent.mx,myna.enriquez@novodent.mx,jocelyn@novodent.mx,wendolin@novodent.mx,brenda@novodent.mx,prueba.conector@novodent.mx",
 		// Confirmada contra nvd-mcp.js (12-oct-2026).
 		"DENTALINK_BASE_URL": "https://api.dentalink.healthatom.com/api/v1",
 		// NVD-TK-41: perfil por llamada desde NVD · Catalogos › USUARIOS_ROLES.
